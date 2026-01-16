@@ -6,9 +6,17 @@ import {
   Zap, BarChart3, Clock, ShieldCheck, ChevronRight, ChevronLeft, ArrowUpRight,
   ArrowDownRight, Bell, History, Target, Percent, Eye, Users, Award, Lock,
   Activity, Package, AlertTriangle, LineChart, ImagePlus, Settings, CheckCircle, X,
-  Armchair, TrendingUp
+  Armchair, TrendingUp, PieChart as PieIcon, BarChart2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// --- LIBRERÍA DE GRÁFICOS (RECHARTS) ---
+// 1. Aquí dejamos solo los COMPONENTES (valores reales)
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, BarChart, Bar, Legend, RadialBarChart, RadialBar, ScatterChart, Scatter
+} from 'recharts';
+
 
 // --- IMPORTACIÓN DE SERVICIOS ---
 import { carService } from '../services/api';
@@ -19,71 +27,29 @@ const GOLD_MAIN = '#E8B923';
 const GLASS_BG = "bg-[#080808]/90 backdrop-blur-xl border border-white/5";
 
 // ===== LISTAS MAESTRAS (FALLBACK) =====
-// Se usan automáticamente si el backend no devuelve datos
-const CAR_COLORS = [
-  "Blanco", "Blanco Perla", "Negro", "Negro Mate", "Gris Plata", "Gris Grafito", 
-  "Gris Oscuro", "Gris Nardo", "Azul", "Azul Marino", "Azul Eléctrico", "Azul Noche",
-  "Rojo", "Rojo Ferrari", "Rojo Vino", "Burdeo", "Verde", "Verde Inglés", "Verde Oliva",
-  "Verde Militar", "Amarillo", "Naranja", "Beige", "Champagne", "Café", "Chocolate",
-  "Bronce", "Dorado", "Cobre", "Morado", "Violeta", "Celeste", "Turquesa", "Crema",
-  "Titanio", "Fibra de Carbono", "Bicolor", "Otro"
-];
-
-const CAR_BRANDS = [
-  "Abarth", "Acura", "Aiways", "Alfa Romeo", "Alpine", "Aston Martin", "Audi", 
-  "Austin", "Baic", "Bentley", "Bestune", "BMW", "Borgward", "Brilliance", 
-  "Bugatti", "Buick", "BYD", "Cadillac", "Caterham", "Changan", "Chery", 
-  "Chevrolet", "Chrysler", "Citroën", "Cupra", "Dacia", "Daewoo", "Daihatsu", 
-  "Datsun", "DFSK", "Dodge", "Dongfeng", "DS Automobiles", "Exeed", "FAW", 
-  "Ferrari", "Fiat", "Fisker", "Ford", "Foton", "GAC", "Geely", "Genesis", 
-  "GMC", "Great Wall", "Hafei", "Haval", "Hino", "Honda", "Hongqi", "Hummer", 
-  "Hyundai", "Infiniti", "Isuzu", "Iveco", "JAC", "Jaecoo", "Jaguar", "Jeep", 
-  "Jetour", "JMC", "Kaiyi", "Karry", "KGM (SsangYong)", "Kia", "King Long", 
-  "Koenigsegg", "Kyc", "Lada", "Lamborghini", "Lancia", "Land Rover", 
-  "Landwind", "Leapmotor", "Lexus", "Lifan", "Lincoln", "Lotus", "Lucid", 
-  "Mahindra", "Maserati", "Maxus", "Maybach", "Mazda", "McLaren", 
-  "Mercedes-Benz", "MG", "Mini", "Mitsubishi", "Morgan", "Nio", "Nissan", 
-  "Oldsmobile", "Omoda", "Opel", "Pagani", "Peugeot", "Polestar", "Pontiac", 
-  "Porsche", "Poer", "Proton", "RAM", "Renault", "Rimac", "Rivian", 
-  "Rolls-Royce", "Rover", "Saab", "Samsung", "Seat", "Shineray", "Skoda", 
-  "Smart", "Soueast", "SsangYong", "Subaru", "Suzuki", "Tank", "Tata", 
-  "Tesla", "Toyota", "Triumph", "Volkswagen", "Volvo", "Xpeng", "Zeekr", 
-  "ZNA", "Zotye", "ZX Auto", "Otro"
-];
+const CAR_COLORS = ["Blanco", "Blanco Perla", "Negro", "Negro Mate", "Gris Plata", "Gris Grafito", "Gris Oscuro", "Azul", "Rojo", "Verde", "Amarillo", "Naranja", "Beige", "Café", "Bronce", "Dorado", "Morado", "Violeta", "Celeste", "Turquesa", "Titanio", "Otro"];
+const CAR_BRANDS = ["Abarth", "Acura", "Alfa Romeo", "Aston Martin", "Audi", "Bentley", "BMW", "Bugatti", "Buick", "BYD", "Cadillac", "Changan", "Chery", "Chevrolet", "Chrysler", "Citroën", "Cupra", "Dacia", "Dodge", "Ferrari", "Fiat", "Ford", "GAC", "Geely", "GMC", "Haval", "Honda", "Hyundai", "Infiniti", "Isuzu", "JAC", "Jaguar", "Jeep", "Jetour", "Kia", "Lamborghini", "Land Rover", "Lexus", "Maserati", "Mazda", "McLaren", "Mercedes-Benz", "MG", "Mini", "Mitsubishi", "Nissan", "Peugeot", "Porsche", "RAM", "Renault", "Rolls-Royce", "Subaru", "Suzuki", "Tesla", "Toyota", "Volkswagen", "Volvo", "Otro"];
 
 const currentYear = new Date().getFullYear();
-const YEARS = Array.from(
-  { length: (currentYear + 1) - 2000 + 1 }, 
-  (_, i) => (currentYear + 1 - i).toString()
-);
+const YEARS = Array.from({ length: (currentYear + 1) - 2000 + 1 }, (_, i) => (currentYear + 1 - i).toString());
 
 // ===== INTERFACES =====
-
-interface Toast {
-  id: number;
-  message: string;
-  type: 'success' | 'error' | 'info';
-}
-
-interface Notification {
-  id: number;
-  text: string;
-  type: 'price' | 'lead' | 'warning';
-  time: string;
-}
-
+interface Toast { id: number; message: string; type: 'success' | 'error' | 'info'; }
+interface Notification { id: number; text: string; type: 'price' | 'lead' | 'warning'; time: string; }
 interface Stats {
-  totalValue: number;
-  avgDays: number;
-  leads: number;
-  count: number;
-  totalComission: number;
-  available: number;
-  sold: number;
-  totalViews: number;
-  avgPrice: number;
-  conversionRate: string;
+  totalValue: number; avgDays: number; leads: number; count: number;
+  totalComission: number; available: number; sold: number; totalViews: number;
+  avgPrice: number; conversionRate: string;
 }
+
+// Props para componentes
+interface ViewProps { stock: Vehiculo[]; }
+interface DashboardViewProps extends ViewProps { stats: Stats; }
+interface AnalyticsViewProps extends ViewProps { stats: Stats; }
+interface InventoryViewProps extends ViewProps { onEdit: (car: Vehiculo) => void; onDelete: (id: number) => void; }
+interface VehicleFormProps { car: Vehiculo | null; onCancel: () => void; onSubmit: (data: Vehiculo) => void; }
+interface SettingsViewProps { showToast: (msg: string, type: 'success' | 'error' | 'info') => void; }
+interface LoginScreenProps { onLogin: () => void; onBack?: () => void; }
 
 interface SellerPortalProps {
   stock: Vehiculo[];
@@ -93,93 +59,28 @@ interface SellerPortalProps {
   onDelete: (id: number) => void;
 }
 
-interface InventoryViewProps {
-  stock: Vehiculo[];
-  onEdit: (car: Vehiculo) => void;
-  onDelete: (id: number) => void;
-}
+// Interfaces UI
+interface NavItemProps { active: boolean; icon: React.ElementType; label: string; onClick: () => void; color?: string; }
+interface KpiCardProps { label: string; value: string | number; icon: React.ElementType; trend?: string; sub?: string; color: string; subValue?: string; }
+interface StatCardProps { label: string; value: string; unit: string; icon: React.ElementType; trend?: 'up' | 'down' | 'stable'; trendValue?: string; color: string; }
+interface FieldProps { label: string; value: string | number | undefined; onChange: (value: string) => void; type?: string; readOnly?: boolean; }
+interface SelectFieldProps { label: string; value: string | undefined; options: string[]; onChange: (value: string) => void; }
+interface TextAreaFieldProps { label: string; value: string | undefined; onChange: (value: string) => void; rows?: number; }
+interface FormSectionProps { title: string; icon: React.ElementType; color: string; children: React.ReactNode; }
+interface AutocompleteFieldProps { label: string; value: string | undefined; options: string[]; onChange: (value: string) => void; placeholder?: string; }
 
-interface VehicleFormProps {
-  car: Vehiculo | null;
-  onCancel: () => void;
-  onSubmit: (data: Vehiculo) => void;
+// Interfaz Específica para Tooltip de Recharts (Soluciona errores de TS)
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number | string;
+    name: string;
+    payload?: Record<string, unknown>;
+    dataKey?: string;
+  }>;
+  label?: string;
 }
-
-interface NavItemProps {
-  active: boolean;
-  icon: React.ElementType;
-  label: string;
-  onClick: () => void;
-  color?: string;
-}
-
-interface KpiCardProps {
-  label: string;
-  value: string | number;
-  icon: React.ElementType;
-  trend?: string;
-  sub?: string;
-  color: string;
-  subValue?: string;
-}
-
-interface StatCardProps {
-  label: string;
-  value: string;
-  unit: string;
-  icon: React.ElementType;
-  trend?: 'up' | 'down' | 'stable';
-  trendValue?: string;
-  color: string;
-}
-
-interface FieldProps {
-  label: string;
-  value: string | number | undefined;
-  onChange: (value: string) => void;
-  type?: string;
-  readOnly?: boolean;
-}
-
-interface SelectFieldProps {
-  label: string;
-  value: string | undefined;
-  options: string[];
-  onChange: (value: string) => void;
-}
-
-interface TextAreaFieldProps {
-  label: string;
-  value: string | undefined;
-  onChange: (value: string) => void;
-  rows?: number;
-}
-
-interface FormSectionProps {
-  title: string;
-  icon: React.ElementType;
-  color: string;
-  children: React.ReactNode;
-}
-
-interface AnalyticsViewProps {
-  stock: Vehiculo[];
-  stats: Stats;
-}
-
-interface AutocompleteFieldProps {
-  label: string;
-  value: string | undefined;
-  options: string[];
-  onChange: (value: string) => void;
-  placeholder?: string;
-}
-
-interface LoginScreenProps {
-  onLogin: () => void;
-  onBack?: () => void;
-}
-
+// Agrega esto en tu bloque de interfaces (aprox línea 80)
 interface DashboardProps {
   stock: Vehiculo[];
   notifications: Notification[];
@@ -190,23 +91,13 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
-// ===== COMPONENTES UI =====
+// ===== COMPONENTES UI GLOBALES =====
 
 const ToastContainer = ({ toasts, removeToast }: { toasts: Toast[], removeToast: (id: number) => void }) => (
   <div className="fixed top-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none">
     <AnimatePresence>
       {toasts.map((toast) => (
-        <motion.div
-          key={toast.id}
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 50 }}
-          className={`pointer-events-auto flex items-center gap-3 px-6 py-4 rounded-2xl border backdrop-blur-md shadow-2xl min-w-[300px] ${
-            toast.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
-            toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
-            'bg-blue-500/10 border-blue-500/20 text-blue-400'
-          }`}
-        >
+        <motion.div key={toast.id} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} className={`pointer-events-auto flex items-center gap-3 px-6 py-4 rounded-2xl border backdrop-blur-md shadow-2xl min-w-[300px] ${toast.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400' : toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-400'}`}>
           {toast.type === 'success' ? <CheckCircle size={20} /> : toast.type === 'error' ? <X size={20} /> : <Bell size={20} />}
           <span className="text-sm font-bold">{toast.message}</span>
           <button onClick={() => removeToast(toast.id)} className="ml-auto opacity-50 hover:opacity-100"><X size={16} /></button>
@@ -214,6 +105,53 @@ const ToastContainer = ({ toasts, removeToast }: { toasts: Toast[], removeToast:
       ))}
     </AnimatePresence>
   </div>
+);
+
+// Componente Tooltip que cumple con los tipos
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    const value = typeof data.value === 'number' ? data.value.toLocaleString() : data.value;
+    const prefix = data.name === 'ventas' || data.name === 'monto' || data.name === 'Precio' ? '$' : '';
+
+    return (
+      <div className="bg-black/90 border border-[#E8B923]/30 p-3 rounded-xl backdrop-blur-md shadow-2xl">
+        <p className="text-[#E8B923] text-xs font-bold mb-1">{label || data.name}</p>
+        <p className="text-white text-xs font-mono">
+          {prefix}{value}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Se usa KpiCardProps
+const KpiCard: React.FC<KpiCardProps> = ({ label, value, icon: Icon, trend, sub, color, subValue }) => (
+  <motion.div whileHover={{ scale: 1.05, y: -5 }} className="bg-[#080808] border border-white/5 p-4 rounded-[2.5rem] relative overflow-hidden group shadow-inner cursor-pointer">
+    <div className="flex justify-between items-start mb-6 relative z-10">
+      <div className={`p-3.5 bg-neutral-900 rounded-2xl border border-white/10 group-hover:border-[#E8B923]/40 transition-colors`}>
+        <Icon size={22} className="text-[#E8B923]" />
+      </div>
+      {trend && <span className="text-[10px] font-black px-2.5 py-1.5 rounded-xl bg-green-500/10 text-green-400 border border-green-500/20 flex items-center gap-1 uppercase tracking-tighter"><ArrowUpRight size={10} /> {trend}</span>}
+    </div>
+    <p className="text-neutral-600 text-[10px] font-black uppercase tracking-[0.2em] mb-1 relative z-10">{label}</p>
+    <h3 className={`text-3xl font-black italic tracking-tighter ${color} relative z-10`}>{value}</h3>
+    {sub && <p className="text-[10px] font-bold text-neutral-700 uppercase mt-1 tracking-widest relative z-10">{sub}</p>}
+    {subValue && <p className="text-[9px] font-bold text-neutral-600 mt-1 relative z-10">{subValue}</p>}
+  </motion.div>
+);
+
+// Se usa StatCardProps
+const StatCard: React.FC<StatCardProps> = ({ label, value, unit, icon: Icon, trend, trendValue, color }) => (
+  <motion.div whileHover={{ scale: 1.02, y: -5 }} className={`bg-gradient-to-br ${color} border border-white/5 p-6 rounded-[2rem] relative overflow-hidden`}>
+    <div className="absolute top-0 right-0 p-12 opacity-10"><Icon size={80} /></div>
+    <div className="relative z-10">
+      <div className="flex items-center gap-2 mb-2"><Icon size={18} className="text-white" /><p className="text-xs font-bold text-neutral-400 uppercase">{label}</p></div>
+      <div className="flex items-end gap-2"><h3 className="text-3xl font-black text-white">{value}</h3><span className="text-sm font-bold text-neutral-400 mb-1">{unit}</span></div>
+      {trend && <div className="mt-2 flex items-center gap-1">{trend === 'up' ? <ArrowUpRight size={14} className="text-green-500" /> : <ArrowDownRight size={14} className="text-green-500" />}<span className={`text-xs font-bold ${trend === 'stable' ? 'text-neutral-500' : 'text-green-500'}`}>{trendValue || 'Estable'}</span></div>}
+    </div>
+  </motion.div>
 );
 
 const AutoCarousel = ({ images, interval = 3000 }: { images: string[], interval?: number }) => {
@@ -229,16 +167,7 @@ const AutoCarousel = ({ images, interval = 3000 }: { images: string[], interval?
   return (
     <div className="relative w-full h-full overflow-hidden">
       <AnimatePresence mode="wait">
-        <motion.img
-          key={currentIndex}
-          src={images[currentIndex]}
-          initial={{ opacity: 0, scale: 1.1 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.5 }}
-          className="w-full h-full object-cover"
-          onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=800"; }}
-        />
+        <motion.img key={currentIndex} src={images[currentIndex]} initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.5 }} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=800"; }} />
       </AnimatePresence>
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
         {images.map((_, idx) => (
@@ -307,7 +236,7 @@ const AutocompleteField: React.FC<AutocompleteFieldProps> = ({ label, value, opt
           type="text"
           className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-[#E8B923]/50 focus:bg-white/[0.02] transition-all text-white placeholder:text-neutral-800 hover:border-white/20"
           placeholder={placeholder}
-          value={inputValue} 
+          value={inputValue}
           onChange={(e) => { onChange(e.target.value); setIsOpen(true); }}
           onClick={() => setIsOpen(true)}
           onFocus={() => setIsOpen(true)}
@@ -338,36 +267,242 @@ const NavItem: React.FC<NavItemProps> = ({ active, icon: Icon, label, onClick, c
   </motion.button>
 );
 
-const KpiCard: React.FC<KpiCardProps> = ({ label, value, icon: Icon, trend, sub, color, subValue }) => (
-  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} whileHover={{ scale: 1.05, y: -5 }} className="bg-[#080808] border border-white/5 p-4 rounded-[2.5rem] relative overflow-hidden group shadow-inner cursor-pointer">
-    <motion.div animate={{ rotate: [0, 5, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-[#E8B923]/5 to-transparent blur-2xl rounded-full" />
-    <div className="flex justify-between items-start mb-6 relative z-10">
-      <div className={`p-3.5 bg-neutral-900 rounded-2xl border border-white/10 group-hover:border-[#E8B923]/40 transition-colors`}>
-        <Icon size={22} className="text-[#E8B923]" />
+
+// ===== VISTAS (DASHBOARD, ANALYTICS, INVENTORY, ETC) =====
+
+// 1. DASHBOARD VIEW
+const DashboardOverview: React.FC<DashboardViewProps> = ({ stats, stock }) => {
+  const brandData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    stock.forEach((car: Vehiculo) => { counts[car.marca] = (counts[car.marca] || 0) + 1; });
+
+    // Solución Tipado: Definimos el tipo de 'a' y 'b'
+    interface BrandItem { name: string; value: number; }
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a: BrandItem, b: BrandItem) => b.value - a.value)
+      .slice(0, 5);
+  }, [stock]);
+
+  const agingData = useMemo(() => {
+    let fresh = 0, mid = 0, old = 0;
+    stock.forEach((c: Vehiculo) => {
+      const days = c.diasStock || 0;
+      if (days <= 30) fresh++; else if (days <= 60) mid++; else old++;
+    });
+    return [
+      { name: '0-30 días', cantidad: fresh, fill: '#10b981' },
+      { name: '31-60 días', cantidad: mid, fill: '#E8B923' },
+      { name: '60+ días', cantidad: old, fill: '#ef4444' }
+    ];
+  }, [stock]);
+
+  const targetData = [{ name: 'Meta', value: 100, fill: '#333' }, { name: 'Logrado', value: 75, fill: '#E8B923' }];
+  const COLORS = ['#E8B923', '#FFF', '#3b82f6', '#10b981', '#6366f1'];
+  const trendData = [{ name: 'Ene', ventas: 24000000 }, { name: 'Feb', ventas: 13980000 }, { name: 'Mar', ventas: 48000000 }, { name: 'Abr', ventas: 39080000 }, { name: 'May', ventas: 48000000 }, { name: 'Jun', ventas: 38000000 }];
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Valor Inventario", value: stats.totalValue.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', notation: 'compact' }), icon: Wallet, color: "text-white" },
+          { label: "Unidades Activas", value: stats.available, icon: Car, color: "text-blue-500" },
+          { label: "Vistas Totales", value: stats.totalViews, icon: Eye, color: "text-green-500" },
+          { label: "Comisión Est.", value: stats.totalComission.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', notation: 'compact' }), icon: Percent, color: "text-[#E8B923]" },
+        ].map((kpi, idx) => (<KpiCard key={idx} {...kpi} trend="+2.5%" sub="vs mes anterior" />))}
       </div>
-      {trend && <span className="text-[10px] font-black px-2.5 py-1.5 rounded-xl bg-green-500/10 text-green-400 border border-green-500/20 flex items-center gap-1 uppercase tracking-tighter"><ArrowUpRight size={10} /> {trend}</span>}
-    </div>
-    <p className="text-neutral-600 text-[10px] font-black uppercase tracking-[0.2em] mb-1 relative z-10">{label}</p>
-    <h3 className={`text-3xl font-black italic tracking-tighter ${color} relative z-10`}>{value}</h3>
-    {sub && <p className="text-[10px] font-bold text-neutral-700 uppercase mt-1 tracking-widest relative z-10">{sub}</p>}
-    {subValue && <p className="text-[9px] font-bold text-neutral-600 mt-1 relative z-10">{subValue}</p>}
-  </motion.div>
-);
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, unit, icon: Icon, trend, trendValue, color }) => (
-  <motion.div whileHover={{ scale: 1.02, y: -5 }} className={`bg-gradient-to-br ${color} border border-white/5 p-6 rounded-[2rem] relative overflow-hidden`}>
-    <div className="absolute top-0 right-0 p-12 opacity-10"><Icon size={80} /></div>
-    <div className="relative z-10">
-      <div className="flex items-center gap-2 mb-2"><Icon size={18} className="text-white" /><p className="text-xs font-bold text-neutral-400 uppercase">{label}</p></div>
-      <div className="flex items-end gap-2"><h3 className="text-3xl font-black text-white">{value}</h3><span className="text-sm font-bold text-neutral-400 mb-1">{unit}</span></div>
-      {trend && <div className="mt-2 flex items-center gap-1">{trend === 'up' ? <ArrowUpRight size={14} className="text-green-500" /> : <ArrowDownRight size={14} className="text-green-500" />}<span className={`text-xs font-bold ${trend === 'stable' ? 'text-neutral-500' : 'text-green-500'}`}>{trendValue || 'Estable'}</span></div>}
-    </div>
-  </motion.div>
-);
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`${GLASS_BG} col-span-2 rounded-3xl p-6 min-h-[300px] flex flex-col`}>
+          <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2"><Activity size={18} className="text-[#E8B923]" /> Tendencia de Ingresos</h3>
+          <div className="flex-1 w-full h-full min-h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trendData}>
+                <defs><linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#E8B923" stopOpacity={0.3} /><stop offset="95%" stopColor="#E8B923" stopOpacity={0} /></linearGradient></defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="#555" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis stroke="#555" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(value) => `$${value / 1000000}M`} />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#E8B923', strokeWidth: 1 }} />
+                <Area type="monotone" dataKey="ventas" stroke="#E8B923" strokeWidth={3} fillOpacity={1} fill="url(#colorVentas)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className={`${GLASS_BG} rounded-3xl p-6 flex flex-col relative overflow-hidden`}>
+          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2"><Target size={16} className="text-red-500" /> META MENSUAL</h3>
+          <div className="flex-1 min-h-[200px] relative flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" barSize={20} data={targetData}>
+                <RadialBar background dataKey="value" cornerRadius={30} />
+              </RadialBarChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-4xl font-black text-white">75%</span><span className="text-[10px] text-neutral-500 uppercase tracking-widest">Logrado</span></div>
+          </div>
+        </div>
+      </div>
 
-// ===== VISTAS PRINCIPALES =====
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className={`${GLASS_BG} rounded-3xl p-6 flex flex-col`}>
+          <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><PieIcon size={16} className="text-blue-500" /> DISTRIBUCIÓN MARCAS</h3>
+          <div className="flex-1 min-h-[200px] relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={brandData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                  {brandData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className={`${GLASS_BG} rounded-3xl p-6 flex flex-col`}>
+          <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><Clock size={16} className="text-orange-500" /> ANTIGÜEDAD STOCK</h3>
+          <div className="flex-1 min-h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={agingData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.05)" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" stroke="#888" tick={{ fontSize: 10 }} width={80} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                <Bar dataKey="cantidad" radius={[0, 4, 4, 0]} barSize={30}>
+                  {agingData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.fill} />))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
-const SettingsView = ({ showToast }: { showToast: (msg: string, type: 'success' | 'error' | 'info') => void }) => {
+// 2. ANALYTICS VIEW
+const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
+  const bodyTypePriceData = useMemo(() => {
+    const groups: Record<string, { total: number, count: number }> = {};
+    stock.forEach((c: Vehiculo) => {
+      if (!groups[c.carroceria]) groups[c.carroceria] = { total: 0, count: 0 };
+      groups[c.carroceria].total += c.precio;
+      groups[c.carroceria].count += 1;
+    });
+
+    // Solución Tipado: Definimos interfaz local para sort
+    interface BodyItem { name: string; value: number; }
+
+    return Object.entries(groups)
+      .map(([name, data]) => ({ name, value: Math.round(data.total / data.count) }))
+      .sort((a: BodyItem, b: BodyItem) => b.value - a.value);
+  }, [stock]);
+
+  const scatterData = useMemo(() => stock.map((c: Vehiculo) => ({ x: c.precio, y: c.diasStock || 0, z: 1, name: `${c.marca} ${c.modelo}` })), [stock]);
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard label="Rotación Media" value={`${stats.avgDays}`} unit="días" icon={Clock} trend="down" trendValue="15%" color="from-purple-500/10 to-purple-600/5" />
+        <StatCard label="Precio Promedio" value={`${(stats.avgPrice / 1000000).toFixed(1)}`} unit="M" icon={DollarSign} trend="up" trendValue="8%" color="from-green-500/10 to-green-600/5" />
+        <StatCard label="Stock Activo" value={`${stats.available}`} unit="unidades" icon={Package} trend="stable" color="from-blue-500/10 to-blue-600/5" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className={`${GLASS_BG} rounded-[2.5rem] p-6 flex flex-col min-h-[400px]`}>
+          <h3 className="text-lg font-black uppercase mb-6 text-white flex items-center gap-2"><BarChart2 size={18} className="text-[#E8B923]" /> Valoración por Segmento</h3>
+          <div className="flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={bodyTypePriceData} layout="vertical" margin={{ left: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.05)" />
+                <XAxis type="number" stroke="#555" tick={{ fontSize: 10 }} tickFormatter={(val) => `$${val / 1000000}M`} />
+                <YAxis dataKey="name" type="category" stroke="#fff" tick={{ fontSize: 11, fontWeight: 'bold' }} width={80} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                <Bar dataKey="value" fill="#E8B923" radius={[0, 4, 4, 0]} barSize={25} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className={`${GLASS_BG} rounded-[2.5rem] p-6 flex flex-col min-h-[400px]`}>
+          <div className="mb-4">
+            <h3 className="text-lg font-black uppercase text-white flex items-center gap-2"><TrendingUp size={18} className="text-blue-500" /> Matriz de Eficiencia</h3>
+            <p className="text-[10px] text-neutral-500">Eje X: Precio | Eje Y: Días en Stock</p>
+          </div>
+          <div className="flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis type="number" dataKey="x" name="Precio" unit="$" stroke="#555" tick={{ fontSize: 10 }} tickFormatter={(val) => `${val / 1000000}M`} />
+                <YAxis type="number" dataKey="y" name="Días" unit="d" stroke="#555" tick={{ fontSize: 10 }} />
+                <Tooltip
+  cursor={{ strokeDasharray: '3 3' }}
+  // Esta línea le dice a ESLint: "Sé que 'any' es malo, pero aquí es necesario, no me avises".
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  content={(props: any) => {
+    const { active, payload } = props;
+
+    if (active && payload && payload.length) {
+      // Definimos la estructura real de tus datos aquí para tener autocompletado seguro
+      const data = payload[0].payload as { name: string; x: number; y: number };
+
+      return (
+        <div className="bg-black/90 border border-blue-500/30 p-3 rounded-xl backdrop-blur-md">
+          <p className="text-white text-xs font-bold">{data.name}</p>
+          <p className="text-blue-400 text-xs">
+            Precio: ${payload[0].value?.toLocaleString()}
+          </p>
+          {/* Validación segura por si payload[1] no existe */}
+          {payload[1] && (
+            <p className="text-neutral-400 text-xs">Días: {payload[1].value}</p>
+          )}
+        </div>
+      );
+    }
+    return null;
+  }}
+/>
+                <Scatter name="Autos" data={scatterData} fill="#3b82f6" />
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className={`${GLASS_BG} rounded-[2.5rem] p-4`}>
+          <h3 className="text-lg font-black uppercase mb-6 text-[#E8B923]">Top Performers (Vistas/Leads)</h3>
+          <div className="space-y-4">
+            {/* Solución Tipado: Definimos tipos para sort */}
+            {stock.sort((a: Vehiculo, b: Vehiculo) => ((b.interesados || 0) / (b.vistas || 1)) - ((a.interesados || 0) / (a.vistas || 1))).slice(0, 5).map((car) => (
+              <div key={car.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#E8B923]/30 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#E8B923]/10 flex items-center justify-center"><Award size={16} className="text-[#E8B923]" /></div>
+                  <div><p className="font-bold text-sm text-white">{car.marca} {car.modelo}</p><p className="text-xs text-neutral-500">{(((car.interesados || 0) / (car.vistas || 1)) * 100).toFixed(1)}% conversión</p></div>
+                </div>
+                <div className="text-right"><p className="text-sm font-mono font-bold text-green-500">{car.interesados || 0} leads</p><p className="text-xs text-neutral-500">{car.vistas || 0} vistas</p></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className={`${GLASS_BG} rounded-[2.5rem] p-4`}>
+          <h3 className="text-lg font-black uppercase mb-6 text-red-500 flex items-center gap-2"><AlertTriangle size={18} className="text-red-500" /> Necesitan Atención (+20 días)</h3>
+          <div className="space-y-4">
+            {stock.filter((c: Vehiculo) => c.estado === 'Disponible' && (c.diasStock || 0) > 20).slice(0, 5).map((car) => (
+              <div key={car.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-red-500/30 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center"><AlertTriangle size={16} className="text-red-500" /></div>
+                  <div><p className="font-bold text-sm text-white">{car.marca} {car.modelo}</p><p className="text-xs text-neutral-500">{car.diasStock || 0} días en stock</p></div>
+                </div>
+                <div className="text-right"><p className="text-sm font-mono font-bold text-white">{car.precio.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</p><p className="text-xs text-[#E8B923]">Considerar descuento</p></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// 3. SETTINGS VIEW
+const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [colors, setColors] = useState<Color[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -385,19 +520,12 @@ const SettingsView = ({ showToast }: { showToast: (msg: string, type: 'success' 
     loadData();
   }, []);
 
-  const refreshData = async () => {
-      try {
-        const [b, c, u] = await Promise.all([carService.getBrands(), carService.getColors(), carService.getUsers()]);
-        setBrands(b); setColors(c); setUsers(u);
-      } catch { /* ignore */ }
-  };
-
-  const addBrand = async () => { if (newBrand) { await carService.createBrand(newBrand); setNewBrand(''); refreshData(); showToast('Marca agregada', 'success'); } };
-  const delBrand = async (id: number) => { await carService.deleteBrand(id); refreshData(); showToast('Marca eliminada', 'info'); };
-  const addColor = async () => { if (newColor) { await carService.createColor(newColor); setNewColor(''); refreshData(); showToast('Color agregado', 'success'); } };
-  const delColor = async (id: number) => { await carService.deleteColor(id); refreshData(); showToast('Color eliminado', 'info'); };
-  const addUser = async () => { if (newUser.username && newUser.password) { await carService.createUser(newUser as User); setNewUser({ username: '', password: '', role: 'vendedor' }); refreshData(); showToast('Usuario creado', 'success'); } };
-  const delUser = async (id: number) => { await carService.deleteUser(id); refreshData(); showToast('Usuario eliminado', 'info'); };
+  const addBrand = async () => { if (newBrand) { await carService.createBrand(newBrand); setNewBrand(''); /* refresh */ showToast('Marca agregada', 'success'); } };
+  const delBrand = async (id: number) => { await carService.deleteBrand(id); /* refresh */ showToast('Marca eliminada', 'info'); };
+  const addColor = async () => { if (newColor) { await carService.createColor(newColor); setNewColor(''); /* refresh */ showToast('Color agregado', 'success'); } };
+  const delColor = async (id: number) => { await carService.deleteColor(id); /* refresh */ showToast('Color eliminado', 'info'); };
+  const addUser = async () => { if (newUser.username && newUser.password) { await carService.createUser(newUser as User); setNewUser({ username: '', password: '', role: 'vendedor' }); /* refresh */ showToast('Usuario creado', 'success'); } };
+  const delUser = async (id: number) => { await carService.deleteUser(id); /* refresh */ showToast('Usuario eliminado', 'info'); };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8 p-4">
@@ -442,52 +570,7 @@ const SettingsView = ({ showToast }: { showToast: (msg: string, type: 'success' 
   );
 };
 
-// --- VIEW: ANALYTICS ---
-const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => (
-  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 space-y-8">
-    <div>
-      <h2 className="text-4xl font-black italic tracking-tighter uppercase text-white">ANALÍTICA <span className="text-[#E8B923]">AVANZADA</span></h2>
-      <p className="text-neutral-500 text-sm mt-1 uppercase font-bold tracking-widest">Insights y métricas profundas</p>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="Rotación Media" value={`${stats.avgDays}`} unit="días" icon={Clock} trend="down" trendValue="15%" color="from-purple-500/10 to-purple-600/5" />
-        <StatCard label="Precio Promedio" value={`$${(stats.avgPrice / 1000000).toFixed(1)}`} unit="M" icon={DollarSign} trend="up" trendValue="8%" color="from-green-500/10 to-green-600/5" />
-        <StatCard label="Stock Activo" value={`${stats.available}`} unit="unidades" icon={Package} trend="stable" color="from-blue-500/10 to-blue-600/5" />
-    </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div className={`${GLASS_BG} rounded-[2.5rem] p-4`}>
-        <h3 className="text-lg font-black uppercase mb-6 text-[#E8B923]">Top Performers</h3>
-        <div className="space-y-4">
-          {stock.sort((a, b) => ((b.interesados || 0) / (b.vistas || 1)) - ((a.interesados || 0) / (a.vistas || 1))).slice(0, 5).map((car, idx) => (
-            <motion.div key={car.id} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: idx * 0.1 }} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#E8B923]/30 transition-all">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#E8B923]/10 flex items-center justify-center"><Award size={16} className="text-[#E8B923]" /></div>
-                <div><p className="font-bold text-sm text-white">{car.marca} {car.modelo}</p><p className="text-xs text-neutral-500">{(((car.interesados || 0) / (car.vistas || 1)) * 100).toFixed(1)}% conversión</p></div>
-              </div>
-              <div className="text-right"><p className="text-sm font-mono font-bold text-green-500">{car.interesados || 0} leads</p><p className="text-xs text-neutral-500">{car.vistas || 0} vistas</p></div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-      <div className={`${GLASS_BG} rounded-[2.5rem] p-4`}>
-        <h3 className="text-lg font-black uppercase mb-6 text-[#E8B923]">Necesitan Atención</h3>
-        <div className="space-y-4">
-          {stock.filter((c) => c.estado === 'Disponible' && (c.diasStock || 0) > 20).slice(0, 5).map((car, idx) => (
-            <motion.div key={car.id} initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: idx * 0.1 }} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#E8B923]/30 transition-all">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#E8B923]/10 flex items-center justify-center"><AlertTriangle size={16} className="text-[#E8B923]" /></div>
-                <div><p className="font-bold text-sm text-white">{car.marca} {car.modelo}</p><p className="text-xs text-neutral-500">{car.diasStock || 0} días en stock</p></div>
-              </div>
-              <div className="text-right"><p className="text-sm font-mono font-bold text-white">{car.precio.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</p><p className="text-xs text-[#E8B923]">Considerar descuento</p></div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </div>
-  </motion.div>
-);
-
-// --- VIEW: INVENTORY ---
+// 4. INVENTORY VIEW
 const InventoryView: React.FC<InventoryViewProps> = ({ stock, onEdit, onDelete }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full space-y-8">
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -551,6 +634,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({ stock, onEdit, onDelete }
   </motion.div>
 );
 
+// 5. VEHICLE FORM
 const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) => {
   const [brandOptions, setBrandOptions] = useState<string[]>(CAR_BRANDS);
   const [colorOptions, setColorOptions] = useState<string[]>(CAR_COLORS);
@@ -562,7 +646,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
         if (brands && brands.length > 0) setBrandOptions(brands.map(b => b.name));
         const colors = await carService.getColors();
         if (colors && colors.length > 0) setColorOptions(colors.map(c => c.name));
-      } catch { /* Fallback */ }
+      } catch { /* Fallback silencioso */ }
     };
     fetchData();
   }, []);
@@ -689,51 +773,49 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
         </FormSection>
 
         <FormSection title="Especificaciones Técnicas" icon={ShieldCheck} color="text-blue-500">
+          <div className="grid grid-cols-2 gap-6">
+            <Field label="Odómetro (KM)" type="number" value={formData.km} onChange={(v) => setFormData({ ...formData, km: parseInt(v) || 0 })} />
+            <Field label="Motor" value={formData.motor} onChange={(v) => setFormData({ ...formData, motor: v })} />
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            <Field label="Cilindrada (Ej: 2.0L)" value={formData.cilindrada} onChange={(v) => setFormData({ ...formData, cilindrada: v })} />
+            <SelectField label="Transmisión" value={formData.transmision} options={['Automática', 'Mecánica', 'CVT', 'DCT']} onChange={(v) => setFormData({ ...formData, transmision: v })} />
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            <SelectField label="Combustible" value={formData.combustible} options={['Gasolina', 'Diesel', 'Híbrido', 'Eléctrico']} onChange={(v) => setFormData({ ...formData, combustible: v })} />
+            <SelectField label="Techo Solar" value={formData.techo ? 'Sí' : 'No'} options={['Sí', 'No']} onChange={(v) => setFormData({ ...formData, techo: v === 'Sí' })} />
+          </div>
+          <div className="mt-4">
+            <TextAreaField label="Observaciones" value={formData.obs} onChange={(v) => setFormData({ ...formData, obs: v })} rows={3} />
+          </div>
+          <div className="mt-4">
+            <h4 className="text-xs font-bold text-white mb-2 flex items-center gap-2"><Activity size={14} /> Detalles Adicionales</h4>
             <div className="grid grid-cols-2 gap-6">
-                <Field label="Odómetro (KM)" type="number" value={formData.km} onChange={(v) => setFormData({ ...formData, km: parseInt(v) || 0 })} />
-                <Field label="Motor" value={formData.motor} onChange={(v) => setFormData({ ...formData, motor: v })} />
+              <SelectField label="Estado Neumáticos" value={formData.neumaticos} options={['Nuevos', 'Buenos', 'Medios', 'Gastados']} onChange={(v) => setFormData({ ...formData, neumaticos: v })} />
+              <Field label="Nº de Llaves" type="number" value={formData.llaves} onChange={(v) => setFormData({ ...formData, llaves: parseInt(v) || 2 })} />
             </div>
-            <div className="grid grid-cols-2 gap-6">
-                <Field label="Cilindrada (Ej: 2.0L)" value={formData.cilindrada} onChange={(v) => setFormData({ ...formData, cilindrada: v })} />
-                <SelectField label="Transmisión" value={formData.transmision} options={['Automática', 'Mecánica', 'CVT', 'DCT']} onChange={(v) => setFormData({ ...formData, transmision: v })} />
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-                <SelectField label="Combustible" value={formData.combustible} options={['Gasolina', 'Diesel', 'Híbrido', 'Eléctrico']} onChange={(v) => setFormData({ ...formData, combustible: v })} />
-                <SelectField label="Techo Solar" value={formData.techo ? 'Sí' : 'No'} options={['Sí', 'No']} onChange={(v) => setFormData({ ...formData, techo: v === 'Sí' })} />
-            </div>
-            <div className="mt-4">
-                <TextAreaField label="Observaciones" value={formData.obs} onChange={(v) => setFormData({ ...formData, obs: v })} rows={3} />
-            </div>
-            {/* AGREGADO: Sección de detalles adicionales */}
-            <div className="mt-4">
-                <h4 className="text-xs font-bold text-white mb-2 flex items-center gap-2"><Activity size={14}/> Detalles Adicionales</h4>
-                <div className="grid grid-cols-2 gap-6">
-                    <SelectField label="Estado Neumáticos" value={formData.neumaticos} options={['Nuevos', 'Buenos', 'Medios', 'Gastados']} onChange={(v) => setFormData({ ...formData, neumaticos: v })} />
-                    <Field label="Nº de Llaves" type="number" value={formData.llaves} onChange={(v) => setFormData({ ...formData, llaves: parseInt(v) || 2 })} />
-                </div>
-            </div>
+          </div>
         </FormSection>
 
         <FormSection title="Galería & Puntos" icon={ImageIcon} color="text-purple-500">
           <div className="space-y-6">
-            
-            {/* --- BOTONES SEPARADOS PARA FOTOS --- */}
-            <div className="grid grid-cols-2 gap-4">
-                <label className="cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#E8B923] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group">
-                    <div className="p-3 bg-white/5 rounded-full group-hover:bg-[#E8B923]/20 transition-colors">
-                        <Car size={24} className="text-white group-hover:text-[#E8B923]"/>
-                    </div>
-                    <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider">Fotos Exterior</span>
-                    <input type="file" multiple className="hidden" onChange={handleImageUpload} />
-                </label>
 
-                <label className="cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#E8B923] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group">
-                    <div className="p-3 bg-white/5 rounded-full group-hover:bg-[#E8B923]/20 transition-colors">
-                        <Armchair size={24} className="text-white group-hover:text-[#E8B923]"/>
-                    </div>
-                    <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider">Fotos Interior</span>
-                    <input type="file" multiple className="hidden" onChange={handleImageUpload} />
-                </label>
+            <div className="grid grid-cols-2 gap-4">
+              <label className="cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#E8B923] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group">
+                <div className="p-3 bg-white/5 rounded-full group-hover:bg-[#E8B923]/20 transition-colors">
+                  <Car size={24} className="text-white group-hover:text-[#E8B923]" />
+                </div>
+                <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider">Fotos Exterior</span>
+                <input type="file" multiple className="hidden" onChange={handleImageUpload} />
+              </label>
+
+              <label className="cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#E8B923] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group">
+                <div className="p-3 bg-white/5 rounded-full group-hover:bg-[#E8B923]/20 transition-colors">
+                  <Armchair size={24} className="text-white group-hover:text-[#E8B923]" />
+                </div>
+                <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider">Fotos Interior</span>
+                <input type="file" multiple className="hidden" onChange={handleImageUpload} />
+              </label>
             </div>
 
             <div ref={imagePreviewRef} onClick={handleImageClick} className="aspect-video bg-neutral-900 rounded-2xl overflow-hidden relative cursor-crosshair border border-white/10">
@@ -742,21 +824,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
                   <img src={currentImage} className="w-full h-full object-contain pointer-events-none" />
                   {formData.imagenes && formData.imagenes.length > 1 && (
                     <>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev > 0 ? prev - 1 : (formData.imagenes?.length || 1) - 1); }} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-[#E8B923] hover:text-black transition-colors z-40"><ChevronLeft size={20}/></button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev < (formData.imagenes?.length || 1) - 1 ? prev + 1 : 0); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-[#E8B923] hover:text-black transition-colors z-40"><ChevronRight size={20}/></button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev > 0 ? prev - 1 : (formData.imagenes?.length || 1) - 1); }} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-[#E8B923] hover:text-black transition-colors z-40"><ChevronLeft size={20} /></button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev < (formData.imagenes?.length || 1) - 1 ? prev + 1 : 0); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-[#E8B923] hover:text-black transition-colors z-40"><ChevronRight size={20} /></button>
                     </>
                   )}
                   {formData.hotspots?.filter(h => h.imageIndex === activeImageIndex).map(spot => (
                     <div key={spot.id} className="absolute w-5 h-5 bg-[#E8B923]/90 border-2 border-white rounded-full shadow-[0_0_15px_rgba(232,185,35,0.8)] transform -translate-x-1/2 -translate-y-1/2 z-20 group/spot cursor-pointer hover:scale-125 transition-transform" style={{ left: `${spot.x}%`, top: `${spot.y}%` }}>
-                        <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteHotspot(spot.id); }} className="absolute -top-4 -right-4 bg-neutral-900 text-[#E8B923] rounded-full p-1 opacity-0 group-hover/spot:opacity-100 transition-all scale-75 hover:scale-100 border border-[#E8B923]/30"><Trash2 size={12} /></button>
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-black/90 backdrop-blur-md border border-white/10 text-white text-[9px] font-bold px-3 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover/spot:opacity-100 pointer-events-none z-50">{spot.label}</div>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteHotspot(spot.id); }} className="absolute -top-4 -right-4 bg-neutral-900 text-[#E8B923] rounded-full p-1 opacity-0 group-hover/spot:opacity-100 transition-all scale-75 hover:scale-100 border border-[#E8B923]/30"><Trash2 size={12} /></button>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-black/90 backdrop-blur-md border border-white/10 text-white text-[9px] font-bold px-3 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover/spot:opacity-100 pointer-events-none z-50">{spot.label}</div>
                     </div>
                   ))}
                   {tempHotspotCoords && (
                     <div className="absolute w-4 h-4 bg-yellow-400 rounded-full animate-pulse border-2 border-white" style={{ left: `${tempHotspotCoords.x}%`, top: `${tempHotspotCoords.y}%`, transform: 'translate(-50%, -50%)' }} />
                   )}
                 </>
-              ) : <div className="h-full flex items-center justify-center text-neutral-600 flex-col gap-2"><ImageIcon size={48}/><p className="text-xs uppercase tracking-widest font-bold">Sin imágenes seleccionadas</p></div>}
+              ) : <div className="h-full flex items-center justify-center text-neutral-600 flex-col gap-2"><ImageIcon size={48} /><p className="text-xs uppercase tracking-widest font-bold">Sin imágenes seleccionadas</p></div>}
             </div>
 
             {formData.imagenes && formData.imagenes.length > 0 && (
@@ -764,7 +846,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
                 {formData.imagenes.map((img, i) => (
                   <div key={i} onClick={() => setActiveImageIndex(i)} className={`w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${activeImageIndex === i ? 'border-[#E8B923] scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                     <img src={img} className="w-full h-full object-cover" />
-                    <button type="button" onClick={(e) => {e.stopPropagation(); removeImage(i)}} className="absolute top-0 right-0 bg-black/70 p-1 hover:bg-red-500 transition-colors"><Trash2 size={10} className="text-white"/></button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); removeImage(i) }} className="absolute top-0 right-0 bg-black/70 p-1 hover:bg-red-500 transition-colors"><Trash2 size={10} className="text-white" /></button>
                   </div>
                 ))}
               </div>
@@ -772,7 +854,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
 
             {tempHotspotCoords && (
               <div className="bg-neutral-900 p-4 rounded-xl border border-white/10 flex flex-col gap-2">
-                <h4 className="text-xs font-bold text-[#E8B923] flex items-center gap-2"><Target size={14}/> Nuevo Punto de Interés</h4>
+                <h4 className="text-xs font-bold text-[#E8B923] flex items-center gap-2"><Target size={14} /> Nuevo Punto de Interés</h4>
                 <Field label="Etiqueta" value={hotspotLabel} onChange={setHotspotLabel} />
                 <Field label="Detalle" value={hotspotDetail} onChange={setHotspotDetail} />
                 <div className="flex gap-2">
@@ -792,7 +874,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
   );
 };
 
-// --- LOGIN SCREEN ---
+// 6. LOGIN SCREEN
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
   const [u, setU] = useState(''); const [p, setP] = useState('');
   const handleLogin = async (e: React.FormEvent) => {
@@ -812,12 +894,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
         </div>
         <div className="space-y-4">
           <div className="relative">
-             <input className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 pl-12 text-white outline-none focus:border-[#E8B923]/50 transition-all" placeholder="Usuario" value={u} onChange={e => setU(e.target.value)} />
-             <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18}/>
+            <input className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 pl-12 text-white outline-none focus:border-[#E8B923]/50 transition-all" placeholder="Usuario" value={u} onChange={e => setU(e.target.value)} />
+            <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
           </div>
           <div className="relative">
-             <input className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 pl-12 text-white outline-none focus:border-[#E8B923]/50 transition-all" type="password" placeholder="Contraseña" value={p} onChange={e => setP(e.target.value)} />
-             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18}/>
+            <input className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 pl-12 text-white outline-none focus:border-[#E8B923]/50 transition-all" type="password" placeholder="Contraseña" value={p} onChange={e => setP(e.target.value)} />
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
           </div>
         </div>
         <button type="submit" className="w-full bg-gradient-to-r from-[#DAA520] to-[#E8B923] text-black font-bold py-4 rounded-2xl mt-8 hover:scale-[1.02] transition-transform">ACCEDER</button>
@@ -827,7 +909,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
   );
 };
 
-// --- MAIN COMPONENT ---
+// 7. MAIN COMPONENT (DASHBOARD WRAPPER)
 const LionsEliteDashboard: React.FC<DashboardProps> = ({
   stock,
   notifications,
@@ -866,7 +948,7 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#E8B923] selection:text-black">
       <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
-      
+
       <aside className="fixed left-0 top-0 h-full w-20 md:w-64 bg-[#080808] border-r border-white/5 z-50 flex flex-col transition-all">
         <div className="p-6 flex items-center gap-3">
           <div className="w-10 h-10 bg-[#E8B923] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(232,185,35,0.2)]"><Zap size={22} className="text-black fill-black" /></div>
@@ -892,10 +974,10 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
           </div>
           <div className="flex items-center gap-4 relative">
             <div className="bg-neutral-900 border border-white/5 px-4 py-2 rounded-full flex items-center gap-2 text-xs text-neutral-400">
-              <Search size={14} /> 
-              <input 
-                className="bg-transparent outline-none text-white placeholder:text-neutral-500 w-24" 
-                placeholder="Buscar..." 
+              <Search size={14} />
+              <input
+                className="bg-transparent outline-none text-white placeholder:text-neutral-500 w-24"
+                placeholder="Buscar..."
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
               />
@@ -910,7 +992,7 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
                     {notifications.map(n => (
                       <div key={n.id} className="p-4 hover:bg-white/5 border-b border-white/5 last:border-0 flex gap-3">
                         <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                            {n.type === 'price' ? <TrendingUp size={14}/> : <Bell size={14}/>}
+                          {n.type === 'price' ? <TrendingUp size={14} /> : <Bell size={14} />}
                         </div>
                         <div><p className="text-xs font-medium text-white">{n.text}</p><p className="text-[10px] text-neutral-500">{n.time}</p></div>
                       </div>
@@ -925,28 +1007,7 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
         <div className="p-8">
           <AnimatePresence mode="wait">
             {view === 'overview' && (
-              <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <KpiCard label="Valor Inventario" value={`$${(stats.totalValue / 1000000).toFixed(1)}M`} icon={Wallet} trend="+5%" color="text-white" />
-                  <KpiCard label="Comisión Est." value={`$${(stats.totalComission / 1000000).toFixed(1)}M`} icon={Percent} trend="+2%" color="text-[#E8B923]" />
-                  <KpiCard label="Stock Activo" value={stats.available} icon={Package} sub="Unidades" color="text-blue-500" />
-                  <KpiCard label="Leads Totales" value={stats.leads} icon={Users} sub="Clientes" color="text-green-500" />
-                  <div className="hidden"><Eye/></div> {/* Hack para que el linter no reclame Eye si no lo usé arriba */}
-                </div>
-                <div className={`${GLASS_BG} rounded-3xl p-8`}>
-                    <div className="flex items-center gap-4 mb-6">
-                        <BarChart3 className="text-[#E8B923]"/>
-                        <h3 className="text-xl font-bold">Rendimiento Mensual</h3>
-                    </div>
-                    <div className="h-40 flex items-end gap-2 px-4">
-                        {[40, 60, 35, 80, 55, 90, 70, 65, 45, 85, 95, 60].map((h, i) => (
-                            <motion.div key={i} initial={{ height: 0 }} animate={{ height: `${h}%` }} transition={{ delay: i * 0.05 }} className="flex-1 bg-white/10 hover:bg-[#E8B923] rounded-t-lg transition-colors cursor-pointer relative group">
-                                <div className="absolute bottom-0 w-full text-center text-[10px] text-neutral-500 translate-y-4 opacity-0 group-hover:opacity-100 transition-opacity">M{i+1}</div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-              </motion.div>
+              <DashboardOverview key="overview" stats={stats} stock={stock} />
             )}
 
             {view === 'settings' && <SettingsView key="settings" showToast={showToast} />}
