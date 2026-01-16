@@ -3,7 +3,7 @@ import {
   Car, Calendar, Gauge, Fuel, Settings2, 
   Search, X, MessageCircle, ChevronRight,
   Filter, Heart, Share2, LayoutDashboard, ArrowLeft,
-  ShieldCheck, User, FileCheck, Settings, Zap, Activity, Star, ChevronLeft,
+  ShieldCheck, User, FileCheck, Settings, Zap, Activity, ChevronLeft,
   QrCode, Smartphone, Calculator, Percent, CreditCard, Banknote
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform, type Variants } from 'framer-motion';
@@ -763,7 +763,7 @@ function App() {
               <div className="flex items-center justify-between text-xs">
                 <div className="hidden lg:flex items-center gap-2 text-gray-400">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-                  <span>Av. Principal #123, Concepción, Chile</span>
+                  <span>Av. Gabriela Mistral 925, Puerto Montt, Chile</span>
                 </div>
                 <div className="flex items-center gap-3 ml-auto">
                   <a href="https://wa.me/56912345678" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-green-400 hover:text-green-300 transition-colors">
@@ -787,34 +787,99 @@ function App() {
           </div>
         </motion.header>
 
-        {currentView === 'catalog' && (
-        <div className="relative h-[400px] w-full overflow-hidden flex items-center justify-center">
-            <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0 z-0">
-                <img src="/hero.png" className="w-full h-full object-cover opacity-80 scale-105" alt="Background" />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/60 to-black" />
+       {currentView === 'catalog' && (
+  <section className="relative h-[950px] w-full overflow-hidden">
+    {/* Background */}
+    <motion.div
+      style={{ y: heroY, opacity: heroOpacity }}
+      className="absolute inset-0"
+    >
+      <img
+        src="/fondo.png"
+        alt="Lions Cars"
+        className="w-full h-full object-cover scale-110"
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-black/20" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/20" />
+    </motion.div>
+
+    {/* Content */}
+    <div className="relative z-10 h-full max-w-7xl mx-auto px-6 flex items-center">
+      <motion.div
+        variants={containerStagger}
+        initial="hidden"
+        animate="show"
+        className="max-w-2xl"
+      >
+        <motion.span
+          variants={fadeInUpSpring}
+          className="inline-block mb-4 text-xs font-black uppercase tracking-[0.35em] text-[#E8B923]"
+        >
+          Multiservicios del Sur
+        </motion.span>
+
+        <motion.h1
+          variants={fadeInUpSpring}
+          className="text-6xl md:text-8xl font-black italic leading-none text-white mb-6"
+        >
+          LIONS{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFE65F] via-[#E8B923] to-[#A37A00]">
+            CARS
+          </span>
+        </motion.h1>
+
+        <motion.p
+          variants={fadeInUpSpring}
+          className="text-gray-300 text-lg md:text-xl mb-8 leading-relaxed"
+        >
+          Vehículos seleccionados, inspeccionados y con garantía.
+          <span className="text-white font-bold">
+            {" "}Calidad premium y financiamiento inmediato.
+          </span>
+        </motion.p>
+
+        {/* CTA */}
+        <motion.div
+          variants={fadeInUpSpring}
+          className="flex flex-wrap gap-4"
+        >
+          <button className="px-8 py-4 bg-gradient-to-r from-[#DAA520] to-[#E8B923] text-black font-black uppercase text-sm tracking-widest rounded-xl shadow-[0_0_40px_rgba(232,185,35,0.4)] hover:scale-105 transition">
+            Ver Catálogo
+          </button>
+
+          <button className="px-8 py-4 bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold uppercase text-sm tracking-widest rounded-xl hover:bg-white/20 transition">
+            Simular Financiamiento
+          </button>
+        </motion.div>
+
+        {/* Trust badges */}
+        <motion.div
+          variants={containerStagger}
+          className="flex gap-6 mt-10"
+        >
+          {["Garantía", "Financiamiento", "Revisión Técnica"].map((t) => (
+            <motion.div
+              key={t}
+              variants={fadeInUpSpring}
+              className="flex items-center gap-2 text-xs text-gray-300"
+            >
+              <span className="w-2 h-2 bg-[#E8B923] rounded-full" />
+              {t}
             </motion.div>
-            <motion.div variants={containerStagger} initial="hidden" animate="show" className="relative z-10 text-center px-4 max-w-4xl">
-                <motion.h1 variants={fadeInUpSpring} className="text-6xl md:text-9xl font-black italic text-white tracking-tighter mb-4 drop-shadow-[0_10px_30px_rgba(232,185,35,0.3)]">
-                    LIONS <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFE65F] via-[#E8B923] to-[#A37A00]">CARS</span>
-                </motion.h1>
-                <motion.div variants={fadeInUpSpring} className="flex justify-center gap-4 mb-8">
-                   {[1,2,3,4,5].map(i => <Star key={i} className="text-[#E8B923] fill-[#E8B923]" size={20} />)}
-                </motion.div>
-                <motion.p variants={fadeInUpSpring} className="text-2xl md:text-4xl font-bold text-white mb-3 drop-shadow-lg">Multiservicios del Sur</motion.p>
-                <motion.p variants={fadeInUpSpring} className="text-gray-300 text-base md:text-lg font-medium drop-shadow-md max-w-2xl mx-auto">
-                   Vehículos seleccionados con garantía y financiamiento disponible. <span className="text-[#E8B923] font-bold"> Calidad Premium</span> asegurada.
-                </motion.p>
-                <motion.div variants={containerStagger} className="flex items-center justify-center gap-4 mt-8 flex-wrap">
-                   {["Garantía Incluida", "Financiamiento Fácil", "Revisión Técnica"].map((text, i) => (
-                      <motion.div key={i} variants={fadeInUpSpring} whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.15)" }} className="bg-white/10 backdrop-blur-md border border-white/20 px-6 py-2 rounded-full cursor-default">
-                         <p className="text-xs font-bold text-white">✓ {text}</p>
-                      </motion.div>
-                   ))}
-                </motion.div>
-            </motion.div>
-            <motion.div className="absolute inset-0 bg-gradient-to-br from-[#A37A00]/10 to-[#E8B923]/20 blur-[120px] pointer-events-none" animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }} />
-        </div>
-        )}
+          ))}
+        </motion.div>
+      </motion.div>
+    </div>
+
+    {/* Glow */}
+    <motion.div
+      className="absolute -bottom-40 -left-40 w-[600px] h-[600px] bg-[#E8B923]/20 rounded-full blur-[160px]"
+      animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+      transition={{ duration: 12, repeat: Infinity }}
+    />
+  </section>
+)}
+
       </div>
 
       <main className="w-full px-6 pb-20 min-h-[600px]">

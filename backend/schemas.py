@@ -1,12 +1,39 @@
 from pydantic import BaseModel
-from typing import List, Optional, Any
+from typing import List, Optional
 
-# Sub-modelos para estructuras complejas
-class PrecioHistorialItem(BaseModel):
-    date: str
-    price: int
+# --- SCHEMAS DE CONFIGURACIÓN ---
+class UserBase(BaseModel):
+    username: str
+    password: str
+    role: str = "vendedor"
 
-class HotspotItem(BaseModel):
+class UserCreate(UserBase):
+    pass
+
+class User(UserBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+class BrandBase(BaseModel):
+    name: str
+
+class Brand(BrandBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+class ColorBase(BaseModel):
+    name: str
+    hex: Optional[str] = None
+
+class Color(ColorBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+# --- SCHEMAS DE VEHÍCULO (Igual que antes pero confirmando cilindrada) ---
+class Hotspot(BaseModel):
     id: str
     x: float
     y: float
@@ -14,7 +41,10 @@ class HotspotItem(BaseModel):
     detail: str
     imageIndex: Optional[int] = 0
 
-# Base Schema (compartido para crear y leer)
+class PrecioHistorialItem(BaseModel):
+    date: str
+    price: int
+
 class VehiculoBase(BaseModel):
     marca: str
     modelo: str
@@ -25,7 +55,7 @@ class VehiculoBase(BaseModel):
     duenos: int
     traccion: Optional[str] = None
     transmision: str
-    cilindrada: Optional[str] = None
+    cilindrada: Optional[str] = None # <--- CONFIRMADO
     combustible: str
     carroceria: str
     puertas: int
@@ -41,23 +71,22 @@ class VehiculoBase(BaseModel):
     neumaticos: str
     llaves: int
     obs: str
-    imagenes: List[str] = []
-    imagen: str
     estado: str
-    diasStock: int
-    vistas: int
-    interesados: int
     patente: str
     color: str
-    comisionEstimada: int
+    diasStock: int = 0
+    vistas: int = 0
+    interesados: int = 0
+    comisionEstimada: int = 0
+    imagenes: List[str] = []
+    imagen: Optional[str] = ""
     precioHistorial: List[PrecioHistorialItem] = []
-    hotspots: List[HotspotItem] = []
+    hotspots: List[Hotspot] = []
 
 class VehiculoCreate(VehiculoBase):
     pass
 
 class Vehiculo(VehiculoBase):
     id: int
-
     class Config:
-        from_attributes = True # Antes orm_mode
+        from_attributes = True
