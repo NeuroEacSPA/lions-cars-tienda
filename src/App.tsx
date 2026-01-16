@@ -788,7 +788,7 @@ function App() {
         </motion.header>
 
        {currentView === 'catalog' && (
-  <section className="relative h-[950px] w-full overflow-hidden">
+  <section className="relative h-[400px] w-full overflow-hidden">
     {/* Background */}
     <motion.div
       style={{ y: heroY, opacity: heroOpacity }}
