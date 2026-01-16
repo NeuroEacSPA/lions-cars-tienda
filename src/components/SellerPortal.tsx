@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// --- IMPORTANTE: IMPORTAMOS LOS TIPOS DESDE LA API ---
+import type { Vehiculo, Hotspot } from '../services/api';
+
 // --- COLORES GOLD ---
 const GOLD_MAIN = '#E8B923';
 
@@ -51,57 +54,7 @@ const YEARS = Array.from(
   (_, i) => (currentYear + 1 - i).toString()
 );
 
-// ===== INTERFACES =====
-// Las definimos aquí para asegurar que no falten si la importación falla
-
-export interface Hotspot {
-  id: string;
-  x: number;
-  y: number;
-  label: string;
-  detail: string;
-  imageIndex?: number;
-}
-
-export interface Vehiculo {
-  id: number;
-  marca: string;
-  modelo: string;
-  version?: string;
-  ano: number;
-  precio: number;
-  km: number;
-  duenos: number;
-  traccion?: string;
-  transmision: string;
-  cilindrada?: string;
-  combustible: string;
-  carroceria: string;
-  puertas: number;
-  pasajeros: number;
-  motor?: string;
-  techo: boolean;
-  asientos: string;
-  tipoVenta: 'Propio' | 'Consignado';
-  vendedor: string;
-  financiable: boolean;
-  valorPie: number;
-  aire: boolean;
-  neumaticos: string;
-  llaves: number;
-  obs: string;
-  imagenes: string[];
-  imagen: string;
-  estado: 'Disponible' | 'Reservado' | 'Vendido';
-  diasStock: number;
-  vistas: number;
-  interesados: number;
-  patente: string;
-  color: string;
-  comisionEstimada: number;
-  precioHistorial: { date: string; price: number }[];
-  hotspots: Hotspot[];
-}
+// ===== INTERFACES LOCALES (UI) =====
 
 interface Notification {
   id: number;
@@ -325,7 +278,7 @@ const TextAreaField: React.FC<TextAreaFieldProps> = ({ label, value, onChange, r
   </div>
 );
 
-// --- COMPONENTE AUTOCOMPLETE CORREGIDO ---
+// --- COMPONENTE AUTOCOMPLETE ---
 interface AutocompleteFieldProps {
   label: string;
   value: string | undefined;
@@ -336,12 +289,8 @@ interface AutocompleteFieldProps {
 
 const AutocompleteField: React.FC<AutocompleteFieldProps> = ({ label, value, options, onChange, placeholder }) => {
   const [isOpen, setIsOpen] = useState(false);
-  // ELIMINADO: const [searchTerm, setSearchTerm] = useState... (Ya no es necesario)
-  // ELIMINADO: useEffect para sincronizar value (Causaba el error)
-  
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Usamos directamente 'value' (prop del padre) para filtrar
   const inputValue = value || '';
   
   const filteredOptions = options.filter(opt => 
@@ -366,15 +315,11 @@ const AutocompleteField: React.FC<AutocompleteFieldProps> = ({ label, value, opt
           type="text"
           className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-[#E8B923]/50 focus:bg-white/[0.02] transition-all text-white placeholder:text-neutral-800 hover:border-white/20"
           placeholder={placeholder}
-          
-          // AQUI ESTA EL CAMBIO CLAVE:
           value={inputValue} 
           onChange={(e) => {
-            onChange(e.target.value); // Notifica al padre directamente
+            onChange(e.target.value); 
             setIsOpen(true);
           }}
-          // --------------------------
-
           onClick={() => setIsOpen(true)}
           onFocus={() => setIsOpen(true)}
         />
@@ -393,7 +338,7 @@ const AutocompleteField: React.FC<AutocompleteFieldProps> = ({ label, value, opt
                   key={opt}
                   className="px-5 py-3 text-sm text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer transition-colors flex items-center justify-between"
                   onClick={() => {
-                    onChange(opt); // Actualiza el padre con la selección
+                    onChange(opt);
                     setIsOpen(false);
                   }}
                 >
@@ -712,8 +657,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({ stock, onEdit, onDelete }
 );
 
 const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) => {
+  // --- CORRECCIÓN 2: Eliminamos el useEffect problemático y usamos valores iniciales directos ---
+  // Si 'car' existe al montar, lo usamos. Si no, usamos los defaults.
   const [formData, setFormData] = useState<Partial<Vehiculo>>(car || {
-    marca: 'Chevrolet', // Valor por defecto común para evitar vacío
+    marca: 'Chevrolet', 
     modelo: '', version: '', precio: 0, km: 0, ano: currentYear,
     transmision: 'Automática', combustible: 'Gasolina', 
     carroceria: 'SUV', puertas: 5, pasajeros: 5, motor: '', 
@@ -836,7 +783,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
     }
     
     const vehiculoCompleto: Vehiculo = {
-      id: car?.id || Date.now(),
+      id: car?.id || 0, // 0 para indicar nuevo si no existe ID
       marca: formData.marca,
       modelo: formData.modelo,
       version: formData.version || '',
@@ -908,7 +855,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
           
           <FormSection title="Identidad & Clasificación" icon={Car} color="text-[#E8B923]">
             <div className="grid grid-cols-2 gap-6">
-              {/* SELECTOR DE MARCAS */}
               <AutocompleteField 
                 label="Marca" 
                 value={formData.marca} 
@@ -928,7 +874,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
               />
             </div>
             <div className="grid grid-cols-3 gap-6">
-              {/* SELECTOR DE AÑO AUTOMÁTICO */}
               <SelectField 
                 label="Año" 
                 value={formData.ano?.toString()} 
@@ -942,7 +887,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
                 onChange={(v) => setFormData({ ...formData, patente: v.toUpperCase() })} 
               />
               
-              {/* SELECTOR DE COLORES */}
               <AutocompleteField 
                 label="Color" 
                 value={formData.color} 
@@ -964,7 +908,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
                   setFormData(prev => ({ 
                     ...prev, 
                     precio: newPrice,
-                    // PIE MÍNIMO AUTOMÁTICO (20%)
                     valorPie: Math.round(newPrice * 0.20)
                   }));
                 }} 
@@ -1614,6 +1557,7 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
 
             {view === 'form' && (
               <VehicleForm
+                key={editingCar ? editingCar.id : 'new'} // Esta key es crucial para limpiar el formulario al cambiar de modo
                 car={editingCar}
                 onCancel={() => setView('inventory')}
                 onSubmit={(data) => {
