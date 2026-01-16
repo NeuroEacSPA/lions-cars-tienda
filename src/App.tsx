@@ -11,9 +11,12 @@ import { motion, AnimatePresence, useScroll, useTransform, type Variants } from 
 // --- IMPORTACIÓN DEL COMPONENTE VENDEDOR ---
 import SellerPortal from './components/SellerPortal';
 
-// --- IMPORTACIÓN DE SERVICIOS (CORREGIDA) ---
-// Separamos 'carService' (valor) de 'Vehiculo' y 'Hotspot' (tipos)
+// --- IMPORTACIÓN DE NUESTRO NUEVO MODAL ---
+import { ConfirmModal } from './components/ConfirmModal';
+
+// --- IMPORTACIÓN DE SERVICIOS (CONEXIÓN BACKEND) ---
 import { carService } from './services/api';
+// Importamos los tipos por separado para evitar errores de 'verbatimModuleSyntax'
 import type { Vehiculo, Hotspot } from './services/api';
 
 // --- COLORES DE MARCA LIONS CARS ---
@@ -310,14 +313,12 @@ const FinanceModal = ({ car, onClose }: { car: Vehiculo, onClose: () => void }) 
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mb-1 relative z-10">Cuota Mensual Estimada</p>
                     <p className="text-4xl font-black text-white tracking-tighter relative z-10 drop-shadow-xl">{formatPrice(cuota)}</p>
                     
-                    {/* SOLUCIÓN: Usamos costoTotal para eliminar el warning de variable no usada */}
                     <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/5 relative z-10">
                         <span className="text-[10px] text-zinc-500 font-bold">Costo Total Est.</span>
                         <span className="text-xs font-mono text-zinc-300">{formatPrice(costoTotal)}</span>
                     </div>
                 </div>
-
-                {/* SOLUCIÓN: Usamos Banknote y CreditCard para eliminar warnings */}
+                
                 <div className="flex gap-3">
                     <button className="flex-1 bg-white text-black py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
                         <Banknote size={16} /> Solicitar
@@ -394,7 +395,6 @@ const CarModal = ({ car, onClose, onContact, onOpenFinance }: { car: Vehiculo; o
                   onClick={() => setIsZoomed(!isZoomed)}
                 />
              </AnimatePresence>
-             {/* SOLUCIÓN: Tipado explícito en map y filter para evitar 'implicit any' */}
              {!isZoomed && car.hotspots?.filter((h: Hotspot) => h.imageIndex === currentImgIdx || (h.imageIndex === undefined && currentImgIdx === 0)).map((spot: Hotspot) => (
                <motion.div
                  key={spot.id}
@@ -416,7 +416,6 @@ const CarModal = ({ car, onClose, onContact, onOpenFinance }: { car: Vehiculo; o
              <button onClick={() => setCurrentImgIdx(prev => prev < activeImages.length - 1 ? prev + 1 : 0)} className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full hover:bg-[#E8B923] hover:text-black transition-all border border-white/10 opacity-0 group-hover:opacity-100 z-40"><ChevronRight size={24} /></button>
           </div>
           <div className="h-24 bg-[#050505] border-t border-white/10 flex items-center gap-3 px-6 overflow-x-auto">
-              {/* SOLUCIÓN: Tipado explícito para 'img' y 'idx' */}
               {activeImages.map((img: string, idx: number) => (
                 <button key={idx} onClick={() => setCurrentImgIdx(idx)} className={`relative flex-shrink-0 w-24 h-16 rounded-lg overflow-hidden border-2 transition-all ${currentImgIdx === idx ? 'border-[#E8B923] scale-105' : 'border-transparent opacity-50 hover:opacity-100'}`}>
                   <img src={img} className="w-full h-full object-cover" />
@@ -620,6 +619,12 @@ function App() {
   const [notification, setNotification] = useState<{ message: string; sub: string } | null>(null);
   const [currentView, setCurrentView] = useState<'catalog' | 'seller'>('catalog');
    
+  // --- NUEVO ESTADO PARA EL MODAL DE CONFIRMACIÓN ---
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; idToDelete: number | null }>({
+    isOpen: false,
+    idToDelete: null,
+  });
+
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 300], [0, 150]);
   const heroOpacity = useTransform(scrollY, [0, 300], [1, 0.3]);
@@ -677,16 +682,25 @@ function App() {
     }
   };
 
-  const handleDeleteCar = async (id: number) => {
-    if (window.confirm('¿Estás seguro de eliminar este vehículo?')) {
-        try {
-            await carService.delete(id);
-            setStock(prev => prev.filter(car => car.id !== id));
-            setNotification({ message: "Vehículo Eliminado", sub: "El registro ha sido borrado." });
-        } catch (error) {
-            console.error("Error al eliminar:", error);
-            setNotification({ message: "Error", sub: "No se pudo eliminar." });
-        }
+  // --- MODIFICADO: SOLICITAR CONFIRMACIÓN ---
+  const requestDeleteCar = (id: number) => {
+    setConfirmDialog({ isOpen: true, idToDelete: id });
+  };
+
+  // --- NUEVO: EJECUTAR BORRADO TRAS CONFIRMACIÓN ---
+  const executeDeleteCar = async () => {
+    const id = confirmDialog.idToDelete;
+    if (!id) return;
+
+    try {
+        await carService.delete(id);
+        setStock(prev => prev.filter(car => car.id !== id));
+        setNotification({ message: "Vehículo Eliminado", sub: "El registro ha sido borrado." });
+    } catch (error) {
+        console.error("Error al eliminar:", error);
+        setNotification({ message: "Error", sub: "No se pudo eliminar." });
+    } finally {
+        setConfirmDialog({ isOpen: false, idToDelete: null });
     }
   };
 
@@ -873,7 +887,8 @@ function App() {
                   stock={stock} 
                   onAdd={handleAddCar} 
                   onUpdate={handleUpdateCar} 
-                  onDelete={handleDeleteCar} 
+                  // AQUÍ PASAMOS LA NUEVA FUNCIÓN QUE ABRE EL MODAL
+                  onDelete={requestDeleteCar} 
                   onBack={() => setCurrentView('catalog')}
                 />
               </motion.div>
@@ -889,6 +904,18 @@ function App() {
       <AnimatePresence>
         {financeCar && <FinanceModal car={financeCar} onClose={() => setFinanceCar(null)} />}
       </AnimatePresence>
+      
+      {/* --- AQUÍ ESTÁ EL MODAL DE CONFIRMACIÓN NUEVO --- */}
+      <ConfirmModal 
+        isOpen={confirmDialog.isOpen}
+        title="¿Eliminar Vehículo?"
+        message="Esta acción no se puede deshacer. El vehículo será eliminado permanentemente de la base de datos."
+        type="danger"
+        confirmText="Eliminar Definitivamente"
+        onCancel={() => setConfirmDialog({ isOpen: false, idToDelete: null })}
+        onConfirm={executeDeleteCar}
+      />
+
       <AnimatePresence>
         {notification && (
           <motion.div initial={{ y: 100, opacity: 0, scale: 0.8 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 50, opacity: 0, scale: 0.9 }} className="fixed bottom-10 right-10 z-[100] bg-[#25D366] text-white p-5 rounded-3xl shadow-2xl flex items-center gap-4 border border-white/20">
@@ -897,21 +924,7 @@ function App() {
           </motion.div>
         )}
       </AnimatePresence>
-      
-      {/* ESTILOS GLOBALES RESTAURADOS */}
       <style>{`
-      .text-glow { text-shadow: 0 0 40px rgba(232, 185, 35, 0.6); }
-      select { 
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); 
-        background-position: right 1rem center; 
-        background-repeat: no-repeat; 
-        background-size: 1.25rem; 
-        appearance: none; 
-      }
-      .sticky {
-        max-height: none;
-        overflow-y: visible;
-      }
       .custom-scrollbar::-webkit-scrollbar {
         width: 6px;
       }
