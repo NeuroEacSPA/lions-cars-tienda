@@ -6,19 +6,17 @@ import {
   Zap, BarChart3, Clock, ShieldCheck, ChevronRight, ChevronLeft, ArrowUpRight,
   ArrowDownRight, Bell, History, Target, Percent, Eye, Users, Award, Lock,
   Activity, Package, AlertTriangle, LineChart, ImagePlus, Settings, CheckCircle, X,
-  Armchair, TrendingUp, PieChart as PieIcon, BarChart2
+  Armchair, TrendingUp, PieChart as PieIcon, BarChart2, Menu // <--- IMPORTANTE: 'Menu' agregado
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- LIBRERÍA DE GRÁFICOS (RECHARTS) ---
-// 1. Aquí dejamos solo los COMPONENTES (valores reales)
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, Legend, RadialBarChart, RadialBar, ScatterChart, Scatter
 } from 'recharts';
 
-
-// --- IMPORTACIÓN DE SERVICIOS ---
+// --- IMPORTACIÓN DE SERVICIOS (Simulada para mantener integridad) ---
 import { carService } from '../services/api';
 import type { Vehiculo, Hotspot, Brand, Color, User } from '../services/api';
 
@@ -69,7 +67,6 @@ interface TextAreaFieldProps { label: string; value: string | undefined; onChang
 interface FormSectionProps { title: string; icon: React.ElementType; color: string; children: React.ReactNode; }
 interface AutocompleteFieldProps { label: string; value: string | undefined; options: string[]; onChange: (value: string) => void; placeholder?: string; }
 
-// Interfaz Específica para Tooltip de Recharts (Soluciona errores de TS)
 interface CustomTooltipProps {
   active?: boolean;
   payload?: Array<{
@@ -80,7 +77,7 @@ interface CustomTooltipProps {
   }>;
   label?: string;
 }
-// Agrega esto en tu bloque de interfaces (aprox línea 80)
+
 interface DashboardProps {
   stock: Vehiculo[];
   notifications: Notification[];
@@ -94,20 +91,19 @@ interface DashboardProps {
 // ===== COMPONENTES UI GLOBALES =====
 
 const ToastContainer = ({ toasts, removeToast }: { toasts: Toast[], removeToast: (id: number) => void }) => (
-  <div className="fixed top-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none">
+  <div className="fixed top-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none max-w-[90vw] md:max-w-md">
     <AnimatePresence>
       {toasts.map((toast) => (
-        <motion.div key={toast.id} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} className={`pointer-events-auto flex items-center gap-3 px-6 py-4 rounded-2xl border backdrop-blur-md shadow-2xl min-w-[300px] ${toast.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400' : toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-400'}`}>
+        <motion.div key={toast.id} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} className={`pointer-events-auto flex items-center gap-3 px-6 py-4 rounded-2xl border backdrop-blur-md shadow-2xl w-full ${toast.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400' : toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-400'}`}>
           {toast.type === 'success' ? <CheckCircle size={20} /> : toast.type === 'error' ? <X size={20} /> : <Bell size={20} />}
-          <span className="text-sm font-bold">{toast.message}</span>
-          <button onClick={() => removeToast(toast.id)} className="ml-auto opacity-50 hover:opacity-100"><X size={16} /></button>
+          <span className="text-sm font-bold truncate">{toast.message}</span>
+          <button onClick={() => removeToast(toast.id)} className="ml-auto opacity-50 hover:opacity-100 flex-shrink-0"><X size={16} /></button>
         </motion.div>
       ))}
     </AnimatePresence>
   </div>
 );
 
-// Componente Tooltip que cumple con los tipos
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0];
@@ -126,9 +122,8 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return null;
 };
 
-// Se usa KpiCardProps
 const KpiCard: React.FC<KpiCardProps> = ({ label, value, icon: Icon, trend, sub, color, subValue }) => (
-  <motion.div whileHover={{ scale: 1.05, y: -5 }} className="bg-[#080808] border border-white/5 p-4 rounded-[2.5rem] relative overflow-hidden group shadow-inner cursor-pointer">
+  <motion.div whileHover={{ scale: 1.05, y: -5 }} className="bg-[#080808] border border-white/5 p-4 rounded-[2.5rem] relative overflow-hidden group shadow-inner cursor-pointer w-full">
     <div className="flex justify-between items-start mb-6 relative z-10">
       <div className={`p-3.5 bg-neutral-900 rounded-2xl border border-white/10 group-hover:border-[#E8B923]/40 transition-colors`}>
         <Icon size={22} className="text-[#E8B923]" />
@@ -136,19 +131,18 @@ const KpiCard: React.FC<KpiCardProps> = ({ label, value, icon: Icon, trend, sub,
       {trend && <span className="text-[10px] font-black px-2.5 py-1.5 rounded-xl bg-green-500/10 text-green-400 border border-green-500/20 flex items-center gap-1 uppercase tracking-tighter"><ArrowUpRight size={10} /> {trend}</span>}
     </div>
     <p className="text-neutral-600 text-[10px] font-black uppercase tracking-[0.2em] mb-1 relative z-10">{label}</p>
-    <h3 className={`text-3xl font-black italic tracking-tighter ${color} relative z-10`}>{value}</h3>
+    <h3 className={`text-2xl md:text-3xl font-black italic tracking-tighter ${color} relative z-10 truncate`}>{value}</h3>
     {sub && <p className="text-[10px] font-bold text-neutral-700 uppercase mt-1 tracking-widest relative z-10">{sub}</p>}
     {subValue && <p className="text-[9px] font-bold text-neutral-600 mt-1 relative z-10">{subValue}</p>}
   </motion.div>
 );
 
-// Se usa StatCardProps
 const StatCard: React.FC<StatCardProps> = ({ label, value, unit, icon: Icon, trend, trendValue, color }) => (
-  <motion.div whileHover={{ scale: 1.02, y: -5 }} className={`bg-gradient-to-br ${color} border border-white/5 p-6 rounded-[2rem] relative overflow-hidden`}>
+  <motion.div whileHover={{ scale: 1.02, y: -5 }} className={`bg-gradient-to-br ${color} border border-white/5 p-6 rounded-[2rem] relative overflow-hidden w-full`}>
     <div className="absolute top-0 right-0 p-12 opacity-10"><Icon size={80} /></div>
     <div className="relative z-10">
       <div className="flex items-center gap-2 mb-2"><Icon size={18} className="text-white" /><p className="text-xs font-bold text-neutral-400 uppercase">{label}</p></div>
-      <div className="flex items-end gap-2"><h3 className="text-3xl font-black text-white">{value}</h3><span className="text-sm font-bold text-neutral-400 mb-1">{unit}</span></div>
+      <div className="flex flex-wrap items-end gap-2"><h3 className="text-2xl md:text-3xl font-black text-white">{value}</h3><span className="text-sm font-bold text-neutral-400 mb-1">{unit}</span></div>
       {trend && <div className="mt-2 flex items-center gap-1">{trend === 'up' ? <ArrowUpRight size={14} className="text-green-500" /> : <ArrowDownRight size={14} className="text-green-500" />}<span className={`text-xs font-bold ${trend === 'stable' ? 'text-neutral-500' : 'text-green-500'}`}>{trendValue || 'Estable'}</span></div>}
     </div>
   </motion.div>
@@ -189,14 +183,14 @@ const FormSection: React.FC<FormSectionProps> = ({ title, icon: Icon, color, chi
 );
 
 const Field: React.FC<FieldProps> = ({ label, value, onChange, type = "text", readOnly = false }) => (
-  <div className="space-y-2 flex-1">
+  <div className="space-y-2 flex-1 w-full">
     <label className="text-[10px] font-black text-neutral-600 uppercase tracking-widest ml-1">{label}</label>
     <input type={type} readOnly={readOnly} className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-[#E8B923]/50 focus:bg-white/[0.02] transition-all text-white placeholder:text-neutral-800 hover:border-white/20 disabled:opacity-50" value={value || ''} onChange={(e) => onChange(e.target.value)} />
   </div>
 );
 
 const SelectField: React.FC<SelectFieldProps> = ({ label, value, options, onChange }) => (
-  <div className="space-y-2 flex-1">
+  <div className="space-y-2 flex-1 w-full">
     <label className="text-[10px] font-black text-neutral-600 uppercase tracking-widest ml-1">{label}</label>
     <div className="relative">
       <select className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-[#E8B923]/50 focus:bg-white/[0.02] transition-all appearance-none cursor-pointer text-white hover:border-white/20" value={value} onChange={(e) => onChange(e.target.value)}>
@@ -218,7 +212,9 @@ const AutocompleteField: React.FC<AutocompleteFieldProps> = ({ label, value, opt
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputValue = value || '';
-  const filteredOptions = options.filter(opt => opt.toLowerCase().includes(inputValue.toLowerCase()));
+  
+  // FIX: Agregamos "opt &&" para evitar crash si vienen nulos desde la BD
+  const filteredOptions = options.filter(opt => opt && opt.toLowerCase().includes(inputValue.toLowerCase()));
 
   useEffect(() => {
     const handleClickOutside = (event: globalThis.MouseEvent) => {
@@ -229,7 +225,7 @@ const AutocompleteField: React.FC<AutocompleteFieldProps> = ({ label, value, opt
   }, []);
 
   return (
-    <div className="space-y-2 flex-1 relative" ref={containerRef}>
+    <div className="space-y-2 flex-1 relative w-full" ref={containerRef}>
       <label className="text-[10px] font-black text-neutral-600 uppercase tracking-widest ml-1">{label}</label>
       <div className="relative">
         <input
@@ -260,9 +256,9 @@ const AutocompleteField: React.FC<AutocompleteFieldProps> = ({ label, value, opt
 };
 
 const NavItem: React.FC<NavItemProps> = ({ active, icon: Icon, label, onClick, color = "text-neutral-500" }) => (
-  <motion.button onClick={onClick} whileHover={{ x: 5 }} whileTap={{ scale: 0.95 }} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all group relative ${active ? 'bg-[#E8B923] text-black shadow-[0_8px_20px_rgba(232,185,35,0.2)]' : `hover:bg-white/5 ${color}`}`}>
+  <motion.button onClick={onClick} whileHover={{ x: 5 }} whileTap={{ scale: 0.95 }} className={`w-full flex items-center justify-center md:justify-start gap-4 p-4 rounded-2xl transition-all group relative ${active ? 'bg-[#E8B923] text-black shadow-[0_8px_20px_rgba(232,185,35,0.2)]' : `hover:bg-white/5 ${color}`}`}>
     <Icon size={20} className={active ? 'text-black' : 'group-hover:text-white transition-colors'} strokeWidth={active ? 2.5 : 2} />
-    <span className="hidden md:block text-[13px] font-bold uppercase tracking-tight">{label}</span>
+    <span className="md:hidden lg:block text-[13px] font-bold uppercase tracking-tight block">{label}</span>
     {active && <motion.div layoutId="nav-pill" className="absolute left-[-1rem] w-2 h-8 bg-[#E8B923] rounded-r-full hidden md:block" />}
   </motion.button>
 );
@@ -276,7 +272,6 @@ const DashboardOverview: React.FC<DashboardViewProps> = ({ stats, stock }) => {
     const counts: Record<string, number> = {};
     stock.forEach((car: Vehiculo) => { counts[car.marca] = (counts[car.marca] || 0) + 1; });
 
-    // Solución Tipado: Definimos el tipo de 'a' y 'b'
     interface BrandItem { name: string; value: number; }
     return Object.entries(counts)
       .map(([name, value]) => ({ name, value }))
@@ -313,7 +308,7 @@ const DashboardOverview: React.FC<DashboardViewProps> = ({ stats, stock }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={`${GLASS_BG} col-span-2 rounded-3xl p-6 min-h-[300px] flex flex-col`}>
+        <div className={`${GLASS_BG} col-span-1 lg:col-span-2 rounded-3xl p-6 min-h-[300px] flex flex-col`}>
           <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2"><Activity size={18} className="text-[#E8B923]" /> Tendencia de Ingresos</h3>
           <div className="flex-1 w-full h-full min-h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -387,7 +382,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
       groups[c.carroceria].count += 1;
     });
 
-    // Solución Tipado: Definimos interfaz local para sort
     interface BodyItem { name: string; value: number; }
 
     return Object.entries(groups)
@@ -433,32 +427,23 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
                 <XAxis type="number" dataKey="x" name="Precio" unit="$" stroke="#555" tick={{ fontSize: 10 }} tickFormatter={(val) => `${val / 1000000}M`} />
                 <YAxis type="number" dataKey="y" name="Días" unit="d" stroke="#555" tick={{ fontSize: 10 }} />
                 <Tooltip
-  cursor={{ strokeDasharray: '3 3' }}
-  // Esta línea le dice a ESLint: "Sé que 'any' es malo, pero aquí es necesario, no me avises".
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  content={(props: any) => {
-    const { active, payload } = props;
-
-    if (active && payload && payload.length) {
-      // Definimos la estructura real de tus datos aquí para tener autocompletado seguro
-      const data = payload[0].payload as { name: string; x: number; y: number };
-
-      return (
-        <div className="bg-black/90 border border-blue-500/30 p-3 rounded-xl backdrop-blur-md">
-          <p className="text-white text-xs font-bold">{data.name}</p>
-          <p className="text-blue-400 text-xs">
-            Precio: ${payload[0].value?.toLocaleString()}
-          </p>
-          {/* Validación segura por si payload[1] no existe */}
-          {payload[1] && (
-            <p className="text-neutral-400 text-xs">Días: {payload[1].value}</p>
-          )}
-        </div>
-      );
-    }
-    return null;
-  }}
-/>
+                  cursor={{ strokeDasharray: '3 3' }}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  content={(props: any) => {
+                    const { active, payload } = props;
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload as { name: string; x: number; y: number };
+                      return (
+                        <div className="bg-black/90 border border-blue-500/30 p-3 rounded-xl backdrop-blur-md">
+                          <p className="text-white text-xs font-bold">{data.name}</p>
+                          <p className="text-blue-400 text-xs">Precio: ${payload[0].value?.toLocaleString()}</p>
+                          {payload[1] && (<p className="text-neutral-400 text-xs">Días: {payload[1].value}</p>)}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
                 <Scatter name="Autos" data={scatterData} fill="#3b82f6" />
               </ScatterChart>
             </ResponsiveContainer>
@@ -470,14 +455,13 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
         <div className={`${GLASS_BG} rounded-[2.5rem] p-4`}>
           <h3 className="text-lg font-black uppercase mb-6 text-[#E8B923]">Top Performers (Vistas/Leads)</h3>
           <div className="space-y-4">
-            {/* Solución Tipado: Definimos tipos para sort */}
             {stock.sort((a: Vehiculo, b: Vehiculo) => ((b.interesados || 0) / (b.vistas || 1)) - ((a.interesados || 0) / (a.vistas || 1))).slice(0, 5).map((car) => (
               <div key={car.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#E8B923]/30 transition-all">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#E8B923]/10 flex items-center justify-center"><Award size={16} className="text-[#E8B923]" /></div>
-                  <div><p className="font-bold text-sm text-white">{car.marca} {car.modelo}</p><p className="text-xs text-neutral-500">{(((car.interesados || 0) / (car.vistas || 1)) * 100).toFixed(1)}% conversión</p></div>
+                  <div className="w-8 h-8 rounded-lg bg-[#E8B923]/10 flex items-center justify-center flex-shrink-0"><Award size={16} className="text-[#E8B923]" /></div>
+                  <div className="truncate"><p className="font-bold text-sm text-white truncate">{car.marca} {car.modelo}</p><p className="text-xs text-neutral-500">{(((car.interesados || 0) / (car.vistas || 1)) * 100).toFixed(1)}% conversión</p></div>
                 </div>
-                <div className="text-right"><p className="text-sm font-mono font-bold text-green-500">{car.interesados || 0} leads</p><p className="text-xs text-neutral-500">{car.vistas || 0} vistas</p></div>
+                <div className="text-right flex-shrink-0"><p className="text-sm font-mono font-bold text-green-500">{car.interesados || 0} leads</p><p className="text-xs text-neutral-500">{car.vistas || 0} vistas</p></div>
               </div>
             ))}
           </div>
@@ -488,10 +472,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
             {stock.filter((c: Vehiculo) => c.estado === 'Disponible' && (c.diasStock || 0) > 20).slice(0, 5).map((car) => (
               <div key={car.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-red-500/30 transition-all">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center"><AlertTriangle size={16} className="text-red-500" /></div>
-                  <div><p className="font-bold text-sm text-white">{car.marca} {car.modelo}</p><p className="text-xs text-neutral-500">{car.diasStock || 0} días en stock</p></div>
+                  <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0"><AlertTriangle size={16} className="text-red-500" /></div>
+                  <div className="truncate"><p className="font-bold text-sm text-white truncate">{car.marca} {car.modelo}</p><p className="text-xs text-neutral-500">{car.diasStock || 0} días en stock</p></div>
                 </div>
-                <div className="text-right"><p className="text-sm font-mono font-bold text-white">{car.precio.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</p><p className="text-xs text-[#E8B923]">Considerar descuento</p></div>
+                <div className="text-right flex-shrink-0"><p className="text-sm font-mono font-bold text-white">{car.precio.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</p><p className="text-xs text-[#E8B923]">Considerar descuento</p></div>
               </div>
             ))}
           </div>
@@ -520,23 +504,23 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
     loadData();
   }, []);
 
-  const addBrand = async () => { if (newBrand) { await carService.createBrand(newBrand); setNewBrand(''); /* refresh */ showToast('Marca agregada', 'success'); } };
-  const delBrand = async (id: number) => { await carService.deleteBrand(id); /* refresh */ showToast('Marca eliminada', 'info'); };
-  const addColor = async () => { if (newColor) { await carService.createColor(newColor); setNewColor(''); /* refresh */ showToast('Color agregado', 'success'); } };
-  const delColor = async (id: number) => { await carService.deleteColor(id); /* refresh */ showToast('Color eliminado', 'info'); };
-  const addUser = async () => { if (newUser.username && newUser.password) { await carService.createUser(newUser as User); setNewUser({ username: '', password: '', role: 'vendedor' }); /* refresh */ showToast('Usuario creado', 'success'); } };
-  const delUser = async (id: number) => { await carService.deleteUser(id); /* refresh */ showToast('Usuario eliminado', 'info'); };
+  const addBrand = async () => { if (newBrand) { await carService.createBrand(newBrand); setNewBrand(''); showToast('Marca agregada', 'success'); } };
+  const delBrand = async (id: number) => { await carService.deleteBrand(id); showToast('Marca eliminada', 'info'); };
+  const addColor = async () => { if (newColor) { await carService.createColor(newColor); setNewColor(''); showToast('Color agregado', 'success'); } };
+  const delColor = async (id: number) => { await carService.deleteColor(id); showToast('Color eliminado', 'info'); };
+  const addUser = async () => { if (newUser.username && newUser.password) { await carService.createUser(newUser as User); setNewUser({ username: '', password: '', role: 'vendedor' }); showToast('Usuario creado', 'success'); } };
+  const delUser = async (id: number) => { await carService.deleteUser(id); showToast('Usuario eliminado', 'info'); };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8 p-4">
-      <h2 className="text-4xl font-black italic tracking-tighter text-white">CONFIGURACIÓN <span className="text-[#E8B923]">SISTEMA</span></h2>
+      <h2 className="text-2xl md:text-4xl font-black italic tracking-tighter text-white">CONFIGURACIÓN <span className="text-[#E8B923]">SISTEMA</span></h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* MARCAS */}
         <div className={`${GLASS_BG} rounded-3xl p-6`}>
           <h3 className="text-sm font-bold text-[#E8B923] mb-4 flex items-center gap-2"><Award size={16} /> GESTIÓN MARCAS</h3>
           <div className="flex gap-2 mb-4">
             <input className="bg-neutral-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white w-full" placeholder="Nueva Marca" value={newBrand} onChange={e => setNewBrand(e.target.value)} />
-            <button onClick={addBrand} className="bg-[#E8B923] text-black p-2 rounded-xl"><PlusCircle size={16} /></button>
+            <button onClick={addBrand} className="bg-[#E8B923] text-black p-2 rounded-xl flex-shrink-0"><PlusCircle size={16} /></button>
           </div>
           <div className="h-64 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
             {brands.map(b => (<div key={b.id} className="flex justify-between items-center bg-white/5 p-2 rounded-lg hover:bg-white/10"><span className="text-xs text-white">{b.name}</span><button onClick={() => delBrand(b.id)} className="text-neutral-500 hover:text-red-500"><Trash2 size={12} /></button></div>))}
@@ -547,7 +531,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
           <h3 className="text-sm font-bold text-blue-500 mb-4 flex items-center gap-2"><ImagePlus size={16} /> GESTIÓN COLORES</h3>
           <div className="flex gap-2 mb-4">
             <input className="bg-neutral-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white w-full" placeholder="Nuevo Color" value={newColor} onChange={e => setNewColor(e.target.value)} />
-            <button onClick={addColor} className="bg-blue-500 text-white p-2 rounded-xl"><PlusCircle size={16} /></button>
+            <button onClick={addColor} className="bg-blue-500 text-white p-2 rounded-xl flex-shrink-0"><PlusCircle size={16} /></button>
           </div>
           <div className="h-64 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
             {colors.map(c => (<div key={c.id} className="flex justify-between items-center bg-white/5 p-2 rounded-lg hover:bg-white/10"><span className="text-xs text-white">{c.name}</span><button onClick={() => delColor(c.id)} className="text-neutral-500 hover:text-red-500"><Trash2 size={12} /></button></div>))}
@@ -574,11 +558,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
 const InventoryView: React.FC<InventoryViewProps> = ({ stock, onEdit, onDelete }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full space-y-8">
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-      <div><h2 className="text-4xl font-black italic tracking-tighter uppercase text-white">ELITE STOCK <span className="text-[#E8B923]">LIST</span></h2><p className="text-neutral-500 text-sm mt-1 uppercase font-bold tracking-[0.2em]">Control total sobre unidades y precios</p></div>
+      <div><h2 className="text-2xl md:text-4xl font-black italic tracking-tighter uppercase text-white">ELITE STOCK <span className="text-[#E8B923]">LIST</span></h2><p className="text-neutral-500 text-xs md:text-sm mt-1 uppercase font-bold tracking-[0.2em]">Control total sobre unidades y precios</p></div>
     </div>
     <div className={`${GLASS_BG} overflow-hidden shadow-2xl w-full rounded-3xl`}>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+      <div className="overflow-x-auto w-full">
+        <table className="w-full text-left border-collapse min-w-[800px]">
           <thead>
             <tr className="bg-white/[0.03] text-[10px] font-black uppercase text-neutral-500 tracking-[0.2em] border-b border-white/5"><th className="p-4">Detalle Unidad</th><th className="p-4">Estatus & Historial</th><th className="p-4">Métricas</th><th className="p-4">Valoración</th><th className="p-4 text-right">Acciones</th></tr>
           </thead>
@@ -590,7 +574,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({ stock, onEdit, onDelete }
                 <motion.tr key={car.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }} className="group border-l-4 border-l-transparent hover:border-l-[#E8B923] transition-all">
                   <td className="p-4">
                     <div className="flex items-center gap-6">
-                      <motion.div whileHover={{ scale: 1.1 }} className="w-24 h-16 rounded-2xl overflow-hidden ring-1 ring-white/10 group-hover:ring-[#E8B923]/50 transition-all shadow-lg relative">
+                      <motion.div whileHover={{ scale: 1.1 }} className="w-24 h-16 rounded-2xl overflow-hidden ring-1 ring-white/10 group-hover:ring-[#E8B923]/50 transition-all shadow-lg relative flex-shrink-0">
                         {car.imagenes && car.imagenes.length > 0 ? <AutoCarousel images={car.imagenes} interval={3500} /> : <img src={car.imagen || 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=800'} alt="" className="w-full h-full object-cover" />}
                         <div className="absolute top-1 left-1 bg-black/80 backdrop-blur-md px-2 py-0.5 rounded-lg text-[8px] font-bold text-white uppercase">{car.ano}</div>
                       </motion.div>
@@ -634,7 +618,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({ stock, onEdit, onDelete }
   </motion.div>
 );
 
-// 5. VEHICLE FORM
+// 5. VEHICLE FORM (CORREGIDO)
 const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) => {
   const [brandOptions, setBrandOptions] = useState<string[]>(CAR_BRANDS);
   const [colorOptions, setColorOptions] = useState<string[]>(CAR_COLORS);
@@ -646,15 +630,16 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
         if (brands && brands.length > 0) setBrandOptions(brands.map(b => b.name));
         const colors = await carService.getColors();
         if (colors && colors.length > 0) setColorOptions(colors.map(c => c.name));
-      } catch { /* Fallback silencioso */ }
+      } catch { /* Fallback */ }
     };
     fetchData();
   }, []);
 
+  // INICIALIZACIÓN DEL ESTADO (Incluye nuevos campos del backend)
   const [formData, setFormData] = useState<Partial<Vehiculo>>(car || {
     marca: 'Chevrolet', modelo: '', version: '', precio: 0, km: 0, ano: currentYear,
-    transmision: 'Automática', combustible: 'Gasolina', carroceria: 'SUV',
-    puertas: 5, pasajeros: 5, motor: '', cilindrada: '',
+    transmision: 'Automática', traccion: '4x2', combustible: 'Gasolina', carroceria: 'SUV',
+    puertas: 5, pasajeros: 5, duenos: 1, motor: '', cilindrada: '',
     techo: false, asientos: 'Cuero', tipoVenta: 'Propio', estado: 'Disponible',
     imagen: '', imagenes: [], patente: '', color: 'Blanco',
     vistas: 0, interesados: 0, diasStock: 0, comisionEstimada: 0,
@@ -668,6 +653,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
   const [hotspotDetail, setHotspotDetail] = useState('');
   const imagePreviewRef = useRef<HTMLDivElement>(null);
 
+  // Manejo de Imágenes
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -687,6 +673,16 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
     });
   };
 
+  const removeImage = (index: number) => {
+    setFormData(prev => {
+      const newImages = (prev.imagenes || []).filter((_, i) => i !== index);
+      const newActiveIndex = activeImageIndex >= newImages.length ? Math.max(0, newImages.length - 1) : activeImageIndex;
+      setActiveImageIndex(newActiveIndex);
+      return { ...prev, imagenes: newImages, imagen: newImages[0] || '' };
+    });
+  };
+
+  // Manejo de Hotspots
   const handleImageClick = (e: MouseEvent<HTMLDivElement>) => {
     if (!formData.imagenes || formData.imagenes.length === 0) return;
     if (!imagePreviewRef.current) return;
@@ -711,25 +707,32 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
     setTempHotspotCoords(null); setHotspotLabel(''); setHotspotDetail('');
   };
 
-  const removeImage = (index: number) => {
-    setFormData(prev => {
-      const newImages = (prev.imagenes || []).filter((_, i) => i !== index);
-      return { ...prev, imagenes: newImages, imagen: newImages[0] || '' };
-    });
-  };
-
   const handleDeleteHotspot = (idToDelete: string) => {
     setFormData(prev => ({ ...prev, hotspots: (prev.hotspots || []).filter(spot => spot.id !== idToDelete) }));
   };
 
+  // SUBMIT (Blindado contra errores 422 y NaN)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.marca || !formData.modelo) return;
+    if (!formData.marca || !formData.modelo) {
+        alert("La Marca y el Modelo son obligatorios.");
+        return;
+    }
+
     onSubmit({
       ...formData,
       id: car?.id || 0,
-      comisionEstimada: Math.round((formData.precio || 0) * 0.02),
-      precioHistorial: car?.precioHistorial || [{ date: new Date().toISOString().split('T')[0], price: formData.precio || 0 }],
+      // Parseamos todo a número explícitamente, usando 0 como fallback
+      precio: Number(formData.precio) || 0,
+      km: Number(formData.km) || 0,
+      valorPie: Number(formData.valorPie) || 0,
+      llaves: Number(formData.llaves) || 0,
+      duenos: Number(formData.duenos) || 1,
+      puertas: Number(formData.puertas) || 5,
+      pasajeros: Number(formData.pasajeros) || 5,
+      
+      comisionEstimada: Math.round((Number(formData.precio) || 0) * 0.02),
+      precioHistorial: car?.precioHistorial || [{ date: new Date().toISOString().split('T')[0], price: Number(formData.precio) || 0 }],
       imagenes: formData.imagenes || [],
       hotspots: formData.hotspots || []
     } as Vehiculo);
@@ -739,73 +742,107 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
 
   return (
     <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="max-w-5xl mx-auto pb-32">
-      <div className="flex justify-between items-center mb-12">
-        <h2 className="text-4xl font-black italic tracking-tighter text-white">{car ? 'GESTIÓN DE UNIDAD' : 'NUEVA ADQUISICIÓN'}</h2>
-        <button onClick={onCancel} className="px-6 py-2 bg-neutral-900 border border-white/10 rounded-full text-white hover:bg-white/5">CANCELAR</button>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 md:mb-12 gap-4">
+        <h2 className="text-2xl md:text-4xl font-black italic tracking-tighter text-white">{car ? 'GESTIÓN DE UNIDAD' : 'NUEVA ADQUISICIÓN'}</h2>
+        <button onClick={onCancel} className="px-6 py-2 bg-neutral-900 border border-white/10 rounded-full text-white hover:bg-white/5 w-full md:w-auto">CANCELAR</button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        
+        {/* SECCIÓN 1: IDENTIDAD */}
         <FormSection title="Identidad & Clasificación" icon={Car} color="text-[#E8B923]">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <AutocompleteField label="Marca" value={formData.marca} options={brandOptions} placeholder="Buscar..." onChange={(v) => setFormData({ ...formData, marca: v })} />
             <Field label="Modelo" value={formData.modelo} onChange={(v) => setFormData({ ...formData, modelo: v })} />
           </div>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Field label="Versión" value={formData.version} onChange={(v) => setFormData({ ...formData, version: v })} />
             <SelectField label="Carrocería" value={formData.carroceria} options={['SUV', 'Sedán', 'Hatchback', 'Camioneta', 'Coupé']} onChange={(v) => setFormData({ ...formData, carroceria: v })} />
           </div>
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <SelectField label="Año" value={formData.ano?.toString()} options={YEARS} onChange={(v) => setFormData({ ...formData, ano: parseInt(v) })} />
+            {/* Patente: Se deja visible porque es importante para el backend */}
             <Field label="Patente" value={formData.patente} onChange={(v) => setFormData({ ...formData, patente: v.toUpperCase() })} />
             <AutocompleteField label="Color" value={formData.color} options={colorOptions} placeholder="Buscar..." onChange={(v) => setFormData({ ...formData, color: v })} />
           </div>
         </FormSection>
 
+        {/* SECCIÓN 2: ESTRATEGIA COMERCIAL */}
         <FormSection title="Estrategia Comercial" icon={DollarSign} color="text-green-500">
-          <div className="grid grid-cols-2 gap-6">
-            <Field label="Precio" type="number" value={formData.precio} onChange={(v) => setFormData({ ...formData, precio: parseInt(v), valorPie: Math.round(parseInt(v) * 0.2) })} />
-            <Field label="Pie Mínimo" type="number" value={formData.valorPie} onChange={(v) => setFormData({ ...formData, valorPie: parseInt(v) })} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Field 
+                label="Precio" type="number" value={formData.precio} 
+                onChange={(v) => {
+                    const val = v === '' ? 0 : parseInt(v);
+                    setFormData({ ...formData, precio: val, valorPie: Math.round(val * 0.2) });
+                }} 
+            />
+            <Field 
+                label="Pie Mínimo" type="number" value={formData.valorPie} 
+                onChange={(v) => setFormData({ ...formData, valorPie: v === '' ? 0 : parseInt(v) })} 
+            />
           </div>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <SelectField label="Modalidad" value={formData.tipoVenta} options={['Propio', 'Consignado']} onChange={(v) => setFormData({ ...formData, tipoVenta: v as 'Propio' | 'Consignado' })} />
             <SelectField label="Estatus" value={formData.estado} options={['Disponible', 'Reservado', 'Vendido']} onChange={(v) => setFormData({ ...formData, estado: v as 'Disponible' | 'Reservado' | 'Vendido' })} />
           </div>
         </FormSection>
 
+        {/* SECCIÓN 3: ESPECIFICACIONES TÉCNICAS (ACTUALIZADA) */}
         <FormSection title="Especificaciones Técnicas" icon={ShieldCheck} color="text-blue-500">
-          <div className="grid grid-cols-2 gap-6">
-            <Field label="Odómetro (KM)" type="number" value={formData.km} onChange={(v) => setFormData({ ...formData, km: parseInt(v) || 0 })} />
+          
+          {/* Motor y Cilindrada */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Field label="Motor" value={formData.motor} onChange={(v) => setFormData({ ...formData, motor: v })} />
-          </div>
-          <div className="grid grid-cols-2 gap-6">
             <Field label="Cilindrada (Ej: 2.0L)" value={formData.cilindrada} onChange={(v) => setFormData({ ...formData, cilindrada: v })} />
-            <SelectField label="Transmisión" value={formData.transmision} options={['Automática', 'Mecánica', 'CVT', 'DCT']} onChange={(v) => setFormData({ ...formData, transmision: v })} />
           </div>
-          <div className="grid grid-cols-2 gap-6">
+
+          {/* Transmisión y Tracción */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <SelectField label="Transmisión" value={formData.transmision} options={['Automática', 'Mecánica', 'CVT', 'DCT']} onChange={(v) => setFormData({ ...formData, transmision: v })} />
+            <SelectField label="Tracción" value={formData.traccion || '4x2'} options={['4x2', '4x4', 'AWD', 'RWD', 'FWD']} onChange={(v) => setFormData({ ...formData, traccion: v })} />
+          </div>
+
+          {/* Kilometraje y Dueños */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Field label="Odómetro (KM)" type="number" value={formData.km} onChange={(v) => setFormData({ ...formData, km: v === '' ? 0 : parseInt(v) })} />
+            <Field label="Dueños" type="number" value={formData.duenos} onChange={(v) => setFormData({ ...formData, duenos: v === '' ? 1 : parseInt(v) })} />
+          </div>
+
+          {/* Combustible y Techo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <SelectField label="Combustible" value={formData.combustible} options={['Gasolina', 'Diesel', 'Híbrido', 'Eléctrico']} onChange={(v) => setFormData({ ...formData, combustible: v })} />
             <SelectField label="Techo Solar" value={formData.techo ? 'Sí' : 'No'} options={['Sí', 'No']} onChange={(v) => setFormData({ ...formData, techo: v === 'Sí' })} />
           </div>
+
+          {/* Puertas y Pasajeros */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <Field label="Puertas" type="number" value={formData.puertas} onChange={(v) => setFormData({ ...formData, puertas: v === '' ? 5 : parseInt(v) })} />
+             <Field label="Pasajeros" type="number" value={formData.pasajeros} onChange={(v) => setFormData({ ...formData, pasajeros: v === '' ? 5 : parseInt(v) })} />
+          </div>
+
           <div className="mt-4">
             <TextAreaField label="Observaciones" value={formData.obs} onChange={(v) => setFormData({ ...formData, obs: v })} rows={3} />
           </div>
+          
           <div className="mt-4">
             <h4 className="text-xs font-bold text-white mb-2 flex items-center gap-2"><Activity size={14} /> Detalles Adicionales</h4>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <SelectField label="Estado Neumáticos" value={formData.neumaticos} options={['Nuevos', 'Buenos', 'Medios', 'Gastados']} onChange={(v) => setFormData({ ...formData, neumaticos: v })} />
-              <Field label="Nº de Llaves" type="number" value={formData.llaves} onChange={(v) => setFormData({ ...formData, llaves: parseInt(v) || 2 })} />
+              <Field label="Nº de Llaves" type="number" value={formData.llaves} onChange={(v) => setFormData({ ...formData, llaves: v === '' ? 0 : parseInt(v) })} />
             </div>
           </div>
         </FormSection>
 
+        {/* SECCIÓN 4: GALERÍA */}
         <FormSection title="Galería & Puntos" icon={ImageIcon} color="text-purple-500">
           <div className="space-y-6">
-
             <div className="grid grid-cols-2 gap-4">
               <label className="cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#E8B923] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group">
                 <div className="p-3 bg-white/5 rounded-full group-hover:bg-[#E8B923]/20 transition-colors">
                   <Car size={24} className="text-white group-hover:text-[#E8B923]" />
                 </div>
-                <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider">Fotos Exterior</span>
+                <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider text-center">Fotos Exterior</span>
                 <input type="file" multiple className="hidden" onChange={handleImageUpload} />
               </label>
 
@@ -813,7 +850,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
                 <div className="p-3 bg-white/5 rounded-full group-hover:bg-[#E8B923]/20 transition-colors">
                   <Armchair size={24} className="text-white group-hover:text-[#E8B923]" />
                 </div>
-                <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider">Fotos Interior</span>
+                <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider text-center">Fotos Interior</span>
                 <input type="file" multiple className="hidden" onChange={handleImageUpload} />
               </label>
             </div>
@@ -909,7 +946,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
   );
 };
 
-// 7. MAIN COMPONENT (DASHBOARD WRAPPER)
+// 7. MAIN COMPONENT (DASHBOARD WRAPPER CORREGIDO PARA RESPONSIVE)
 const LionsEliteDashboard: React.FC<DashboardProps> = ({
   stock,
   notifications,
@@ -924,6 +961,7 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
   const [editingCar, setEditingCar] = useState<Vehiculo | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     const id = Date.now();
@@ -946,57 +984,109 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
   }, [stock]);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#E8B923] selection:text-black">
+    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#E8B923] selection:text-black overflow-x-hidden">
       <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
 
-      <aside className="fixed left-0 top-0 h-full w-20 md:w-64 bg-[#080808] border-r border-white/5 z-50 flex flex-col transition-all">
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#E8B923] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(232,185,35,0.2)]"><Zap size={22} className="text-black fill-black" /></div>
-          <span className="hidden md:block font-black text-xl italic">LIONS <span className="text-[#E8B923]">ELITE</span></span>
+      {/* --- OVERLAY PARA MÓVIL --- */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* --- SIDEBAR RESPONSIVE (DRAWER) --- */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 bg-[#080808] border-r border-white/5 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out
+        w-72 md:w-20 lg:w-64
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+      `}>
+        <div className="p-6 h-20 flex items-center justify-between md:justify-center lg:justify-start border-b border-white/5">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-10 h-10 bg-[#E8B923] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(232,185,35,0.2)] flex-shrink-0"><Zap size={22} className="text-black fill-black" /></div>
+            <span className="font-black text-xl italic md:hidden lg:block whitespace-nowrap">LIONS <span className="text-[#E8B923]">ELITE</span></span>
+          </div>
+          {/* Botón cerrar visible solo en móvil */}
+          <button onClick={() => setMobileMenuOpen(false)} className="md:hidden text-neutral-400 hover:text-white"><X size={24} /></button>
         </div>
-        <nav className="mt-8 px-4 space-y-2 flex-1">
-          <NavItem active={view === 'overview'} icon={BarChart3} label="Dashboard" onClick={() => setView('overview')} />
-          <NavItem active={view === 'inventory'} icon={Car} label="Inventario" onClick={() => setView('inventory')} />
-          <NavItem active={view === 'form'} icon={PlusCircle} label="Publicar" onClick={() => { setEditingCar(null); setView('form'); }} />
-          <NavItem active={view === 'analytics'} icon={LineChart} label="Analítica" onClick={() => setView('analytics')} />
-          <NavItem active={view === 'settings'} icon={Settings} label="Configuración" onClick={() => setView('settings')} />
-          <div className="h-px bg-white/5 my-4" />
-          {onBack && <NavItem active={false} icon={ArrowLeft} label="Volver al Catálogo" onClick={onBack} color="text-blue-500/70" />}
+
+        <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-2 custom-scrollbar">
+          <NavItem active={view === 'overview'} icon={BarChart3} label="Dashboard" onClick={() => { setView('overview'); setMobileMenuOpen(false); }} />
+          <NavItem active={view === 'inventory'} icon={Car} label="Inventario" onClick={() => { setView('inventory'); setMobileMenuOpen(false); }} />
+          <NavItem active={view === 'form'} icon={PlusCircle} label="Publicar" onClick={() => { setEditingCar(null); setView('form'); setMobileMenuOpen(false); }} />
+          <NavItem active={view === 'analytics'} icon={LineChart} label="Analítica" onClick={() => { setView('analytics'); setMobileMenuOpen(false); }} />
+          <NavItem active={view === 'settings'} icon={Settings} label="Configuración" onClick={() => { setView('settings'); setMobileMenuOpen(false); }} />
+          <div className="h-px bg-white/5 my-4 mx-2" />
+          {onBack && <NavItem active={false} icon={ArrowLeft} label="Volver Catálogo" onClick={onBack} color="text-blue-500/70" />}
           <NavItem active={false} icon={LogOut} label="Cerrar Sesión" onClick={onLogout} color="text-red-500/70" />
         </nav>
+
+        <div className="p-4 border-t border-white/5 md:hidden lg:flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-xs font-bold text-[#E8B923]">AD</div>
+          <div className="overflow-hidden">
+            <p className="text-xs font-bold text-white truncate">Admin User</p>
+            <p className="text-[10px] text-neutral-500 truncate">Gerente Ventas</p>
+          </div>
+        </div>
       </aside>
 
-      <main className="pl-20 md:pl-64 transition-all min-h-screen flex flex-col">
-        <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-[#050505]/80 backdrop-blur-xl sticky top-0 z-40">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">System Online</span>
+      <main className={`
+        transition-all duration-300 min-h-screen flex flex-col
+        pl-0 md:pl-20 lg:pl-64
+      `}>
+        <header className="h-20 border-b border-white/5 flex items-center justify-between px-4 md:px-8 bg-[#050505]/80 backdrop-blur-xl sticky top-0 z-30">
+          <div className="flex items-center gap-4">
+            {/* BOTÓN HAMBURGUESA PARA MÓVIL */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="md:hidden p-2 text-white bg-white/5 rounded-lg active:scale-95 transition-all"
+            >
+              <Menu size={24} />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest hidden sm:block">System Online</span>
+            </div>
           </div>
+
           <div className="flex items-center gap-4 relative">
-            <div className="bg-neutral-900 border border-white/5 px-4 py-2 rounded-full flex items-center gap-2 text-xs text-neutral-400">
+            <div className="bg-neutral-900 border border-white/5 px-4 py-2 rounded-full flex items-center gap-2 text-xs text-neutral-400 hidden sm:flex">
               <Search size={14} />
               <input
-                className="bg-transparent outline-none text-white placeholder:text-neutral-500 w-24"
+                className="bg-transparent outline-none text-white placeholder:text-neutral-500 w-24 md:w-32"
                 placeholder="Buscar..."
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
               />
             </div>
+            {/* Botón lupa para móvil */}
+            <button className="sm:hidden p-2 text-neutral-400"><Search size={20} /></button>
+
             <div className="relative">
-              <button onClick={() => setShowNotifications(!showNotifications)} className="p-2 bg-neutral-900 rounded-full hover:bg-white/10 transition-colors"><Bell size={18} className="text-neutral-400" /></button>
-              {notifications.length > 0 && <span className="absolute top-0 right-0 w-2 h-2 bg-[#E8B923] rounded-full border border-black" />}
+              <button onClick={() => setShowNotifications(!showNotifications)} className="p-2 bg-neutral-900 rounded-full hover:bg-white/10 transition-colors relative">
+                <Bell size={18} className="text-neutral-400" />
+                {notifications.length > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#E8B923] rounded-full border-2 border-[#050505]" />}
+              </button>
               <AnimatePresence>
                 {showNotifications && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute right-0 mt-4 w-72 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-xl overflow-hidden z-50">
-                    <div className="p-4 border-b border-white/5"><h4 className="text-xs font-bold text-[#E8B923]">Notificaciones</h4></div>
-                    {notifications.map(n => (
-                      <div key={n.id} className="p-4 hover:bg-white/5 border-b border-white/5 last:border-0 flex gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                          {n.type === 'price' ? <TrendingUp size={14} /> : <Bell size={14} />}
+                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="absolute right-0 mt-4 w-72 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 origin-top-right">
+                    <div className="p-4 border-b border-white/5 bg-white/5"><h4 className="text-xs font-bold text-[#E8B923] uppercase tracking-widest">Notificaciones</h4></div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {notifications.map(n => (
+                        <div key={n.id} className="p-4 hover:bg-white/5 border-b border-white/5 last:border-0 flex gap-3 transition-colors cursor-pointer">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${n.type === 'price' ? 'bg-green-500/10 text-green-500' : n.type === 'warning' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                            {n.type === 'price' ? <TrendingUp size={14} /> : n.type === 'warning' ? <AlertTriangle size={14} /> : <Bell size={14} />}
+                          </div>
+                          <div><p className="text-xs font-medium text-white leading-tight">{n.text}</p><p className="text-[10px] text-neutral-500 mt-1">{n.time}</p></div>
                         </div>
-                        <div><p className="text-xs font-medium text-white">{n.text}</p><p className="text-[10px] text-neutral-500">{n.time}</p></div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1004,7 +1094,7 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
           </div>
         </header>
 
-        <div className="p-8">
+        <div className="p-4 md:p-8 flex-1 overflow-x-hidden">
           <AnimatePresence mode="wait">
             {view === 'overview' && (
               <DashboardOverview key="overview" stats={stats} stock={stock} />

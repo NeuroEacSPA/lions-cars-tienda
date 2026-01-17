@@ -1,20 +1,7 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 
-# --- SCHEMAS DE CONFIGURACIÓN ---
-class UserBase(BaseModel):
-    username: str
-    password: str
-    role: str = "vendedor"
-
-class UserCreate(UserBase):
-    pass
-
-class User(UserBase):
-    id: int
-    class Config:
-        from_attributes = True
-
+# --- SCHEMAS AUXILIARES (Marcas, Colores, Usuarios) ---
 class BrandBase(BaseModel):
     name: str
 
@@ -32,18 +19,20 @@ class Color(ColorBase):
     class Config:
         from_attributes = True
 
-# --- SCHEMAS DE VEHÍCULO (Igual que antes pero confirmando cilindrada) ---
-class Hotspot(BaseModel):
-    id: str
-    x: float
-    y: float
-    label: str
-    detail: str
-    imageIndex: Optional[int] = 0
+class UserBase(BaseModel):
+    username: str
+    password: str 
 
-class PrecioHistorialItem(BaseModel):
-    date: str
-    price: int
+class UserCreate(UserBase):
+    role: str = "vendedor"
+
+class User(UserBase):
+    id: int
+    role: str
+    class Config:
+        from_attributes = True
+
+# --- SCHEMA PRINCIPAL: VEHÍCULO ---
 
 class VehiculoBase(BaseModel):
     marca: str
@@ -52,36 +41,46 @@ class VehiculoBase(BaseModel):
     ano: int
     precio: int
     km: int
-    duenos: int
-    traccion: Optional[str] = None
+    duenos: int = 1  # <--- NUEVO
+    
+    # Especificaciones
+    traccion: Optional[str] = "4x2" # <--- NUEVO
     transmision: str
-    cilindrada: Optional[str] = None # <--- CONFIRMADO
+    cilindrada: Optional[str] = None
     combustible: str
     carroceria: str
-    puertas: int
-    pasajeros: int
+    puertas: int = 5    # <--- NUEVO
+    pasajeros: int = 5  # <--- NUEVO
     motor: Optional[str] = None
-    techo: bool
+    techo: bool = False
     asientos: str
+    
+    # Venta
     tipoVenta: str
     vendedor: str
-    financiable: bool
+    financiable: bool = True
     valorPie: int
-    aire: bool
+    estado: str = "Disponible"
+    
+    # Detalles
+    aire: bool = True
     neumaticos: str
     llaves: int
-    obs: str
-    estado: str
-    patente: str
+    obs: Optional[str] = ""
+    patente: Optional[str] = None # Opcional, pero se acepta
     color: str
+    
+    # Métricas
     diasStock: int = 0
     vistas: int = 0
     interesados: int = 0
     comisionEstimada: int = 0
+
+    # JSONs (Imágenes y Hotspots)
     imagenes: List[str] = []
-    imagen: Optional[str] = ""
-    precioHistorial: List[PrecioHistorialItem] = []
-    hotspots: List[Hotspot] = []
+    imagen: Optional[str] = None
+    precioHistorial: List[Dict[str, Any]] = []
+    hotspots: List[Dict[str, Any]] = []
 
 class VehiculoCreate(VehiculoBase):
     pass
@@ -89,4 +88,4 @@ class VehiculoCreate(VehiculoBase):
 class Vehiculo(VehiculoBase):
     id: int
     class Config:
-        from_attributes = True
+        from_attributes = True # Esto permite leer desde SQLAlchemy

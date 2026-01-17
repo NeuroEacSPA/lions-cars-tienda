@@ -9,8 +9,11 @@ from database import engine, get_db
 # Al actualizar modelos, recreamos tablas (en dev es seguro, en prod usar Alembic)
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Lions Cars API")
-
+app = FastAPI(
+    title="Lions Cars API",
+    version="0.1.0",
+    root_path="/api"
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

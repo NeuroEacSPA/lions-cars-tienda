@@ -53,7 +53,7 @@ export interface Brand { id: number; name: string; }
 export interface Color { id: number; name: string; hex?: string; }
 export interface User { id: number; username: string; password?: string; role: string; }
 
-const API_URL = 'http://127.0.0.1:8000';
+const API_URL = "/api";
 
 export const carService = {
   // --- AUTOS ---
