@@ -1,40 +1,48 @@
-// src/types/Vehiculo.ts
-export interface PriceRecord {
-  date: string;
-  price: number;
-}
-
+// Define esto donde tengas tus interfaces
 export interface Vehiculo {
   id: number;
   marca: string;
   modelo: string;
-  version: string;
+  version?: string;
   ano: number;
   precio: number;
   km: number;
-  duenos: number;
-  traccion: string;
+  duenos: number; // NUEVO
+  
+  // Especificaciones
+  traccion?: string; // NUEVO (4x2, 4x4, etc)
   transmision: string;
-  cilindrada: string;
+  cilindrada?: string; // String (ej: "2.0L")
   combustible: string;
+  carroceria: string;
+  puertas: number; // Ahora editable
+  pasajeros: number; // Ahora editable
+  motor?: string; // Opcional, pero se envía
+  techo: boolean;
+  asientos: string;
+  
+  // Venta y Estado
   tipoVenta: 'Propio' | 'Consignado';
   vendedor: string;
   financiable: boolean;
   valorPie: number;
+  estado: 'Disponible' | 'Reservado' | 'Vendido';
+  
+  // Detalles
   aire: boolean;
   neumaticos: string;
   llaves: number;
   obs: string;
-  imagenes: string[];
+  patente?: string; // Mantenemos patente (aunque sea interna)
+  color: string;
   
-  // Propiedades opcionales
-  estado?: 'Disponible' | 'Vendido' | 'Reservado';
+  // Métricas y Media
   diasStock?: number;
   vistas?: number;
   interesados?: number;
-  patente?: string;
-  color?: string;
   comisionEstimada?: number;
-  precioHistorial?: PriceRecord[];
+  imagenes: string[];
   imagen?: string;
+  precioHistorial?: { date: string; price: number }[];
+  hotspots?: any[];
 }
