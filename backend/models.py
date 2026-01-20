@@ -24,6 +24,7 @@ class ColorDB(Base):
 class VehiculoDB(Base):
     __tablename__ = "vehiculos"
     id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String, unique=True, index=True)
     marca = Column(String, index=True)
     modelo = Column(String, index=True)
     version = Column(String, nullable=True)
