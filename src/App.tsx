@@ -1,12 +1,18 @@
 import React, { useState, useMemo, useEffect } from 'react';
+
 import {
   Car, Calendar, Gauge, Fuel, Settings2,
   Search, X, MessageCircle, ChevronRight,
   Filter, Heart, Share2, LayoutDashboard, ArrowLeft,
    User, FileCheck, Settings, Zap, Activity, ChevronLeft,
-  QrCode, Smartphone, Calculator, Percent, CreditCard, Banknote, RefreshCw,
+  QrCode, Smartphone, Calculator, Percent, CreditCard, Banknote, RefreshCw,FileDown
 } from 'lucide-react';
+import { useParams, useNavigate, } from 'react-router-dom';
 import { motion, AnimatePresence, useScroll, useTransform, type Variants } from 'framer-motion';
+
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { CarPdfDocument } from './components/CarPdf';
+
 
 // --- IMPORTACIÓN DEL COMPONENTE VENDEDOR ---
 import SellerPortal from './components/SellerPortal';
@@ -326,44 +332,110 @@ const FinanceModal = ({ car, onClose }: { car: Vehiculo, onClose: () => void }) 
 };
 
 // --- CAR MODAL CORREGIDO: Botón Contactar Visible en Móvil ---
-const CarModal = ({ car, onClose, onContact, onOpenFinance }: { car: Vehiculo; onClose: () => void; onContact: (c: Vehiculo) => void, onOpenFinance: () => void }) => {
-  // CAMBIO 1: Eliminamos 'DETALLES' del tipo
+// --- CAR MODAL COMPLETO CON NAVEGACIÓN MEJORADA ---
+const CarModal = ({ 
+  car, 
+  onClose, 
+  onContact, 
+  onOpenFinance 
+}: { 
+  car: Vehiculo; 
+  onClose: () => void; 
+  onContact: (c: Vehiculo) => void; 
+  onOpenFinance: () => void;
+}) => {
   type TabType = 'EXTERIOR' | 'INTERIOR';
   const [activeTab, setActiveTab] = useState<TabType>('EXTERIOR');
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
 
-  const images = Array.isArray(car.imagenes) && car.imagenes.length > 0 ? car.imagenes : [car.imagen];
+  // Preparar imágenes
+  const images = Array.isArray(car.imagenes) && car.imagenes.length > 0 
+    ? car.imagenes 
+    : [car.imagen || "https://via.placeholder.com/800x600?text=Lions+Cars"];
+  
   const splitIndex = Math.ceil(images.length / 2);
   const exteriorImages = images.slice(0, splitIndex);
   const interiorImages = images.slice(splitIndex);
 
-  // CAMBIO 2: Lógica simplificada para solo dos estados
-  const activeImages = activeTab === 'INTERIOR' && interiorImages.length > 0 ? interiorImages : exteriorImages;
+  // Determinar imágenes activas según la pestaña
+  const activeImages = activeTab === 'INTERIOR' && interiorImages.length > 0 
+    ? interiorImages 
+    : exteriorImages;
+  
   const currentImage = activeImages[currentImgIdx] || images[0];
+
+  // Resetear índice al cambiar de pestaña
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setCurrentImgIdx(0);
+    setIsZoomed(false);
+  };
+
+  // Navegación de imágenes
+  const goToPrevImage = () => {
+    setCurrentImgIdx(prev => prev > 0 ? prev - 1 : activeImages.length - 1);
+  };
+
+  const goToNextImage = () => {
+    setCurrentImgIdx(prev => prev < activeImages.length - 1 ? prev + 1 : 0);
+  };
+
+  // Soporte para teclado
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft') goToPrevImage();
+      if (e.key === 'ArrowRight') goToNextImage();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose]);
+
+  // Prevenir scroll del body cuando el modal está abierto
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   return (
     <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black sm:bg-black/95 sm:backdrop-blur-xl sm:p-2 md:p-6 font-mono overflow-hidden"
+      onClick={onClose}
     >
+      {/* Fondo con gradiente */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#A37A00]/20 via-black to-black pointer-events-none" />
 
       <motion.div
         layoutId={`card-${car.id}`}
+        onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-[1600px] h-[100dvh] sm:h-[95vh] bg-[#0a0a0c] sm:border border-white/10 sm:rounded-sm sm:shadow-[0_0_100px_rgba(232,185,35,0.15)] flex flex-col lg:flex-row overflow-hidden"
       >
-        {/* Sección Imagen */}
+        {/* ========== SECCIÓN IZQUIERDA: IMÁGENES ========== */}
         <div className="w-full lg:w-[65%] h-[40vh] sm:h-[50vh] lg:h-full relative flex flex-col bg-black shrink-0">
+          
+          {/* Header con tabs y botones */}
           <div className="absolute top-0 left-0 w-full z-20 p-4 sm:p-6 flex justify-between items-start pointer-events-none">
+            
+            {/* Tabs EXTERIOR/INTERIOR */}
             <div className="flex gap-4 pointer-events-auto">
               <div className="flex bg-black/50 backdrop-blur-md border border-white/10 rounded-lg p-1 scale-90 origin-top-left sm:scale-100">
-                {/* CAMBIO 3: Solo mostramos botones EXTERIOR e INTERIOR */}
                 {(['EXTERIOR', 'INTERIOR'] as TabType[]).map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => { setActiveTab(tab); setCurrentImgIdx(0); }}
-                    className={`px-3 sm:px-4 py-2 text-[8px] sm:text-[10px] font-bold tracking-widest transition-all rounded-md ${activeTab === tab ? 'bg-[#E8B923] text-black shadow-lg shadow-[#E8B923]/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                    onClick={() => handleTabChange(tab)}
+                    className={`px-3 sm:px-4 py-2 text-[8px] sm:text-[10px] font-bold tracking-widest transition-all rounded-md ${
+                      activeTab === tab 
+                        ? 'bg-[#E8B923] text-black shadow-lg shadow-[#E8B923]/20' 
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    }`}
                   >
                     {tab}
                   </button>
@@ -371,67 +443,148 @@ const CarModal = ({ car, onClose, onContact, onOpenFinance }: { car: Vehiculo; o
               </div>
             </div>
 
-            <button onClick={onClose} className="pointer-events-auto p-2 bg-black/50 rounded-full text-white sm:hidden backdrop-blur-md border border-white/10"><X size={20} /></button>
+            {/* Botón cerrar (móvil) */}
+            <button 
+              onClick={onClose} 
+              className="pointer-events-auto p-2 bg-black/50 rounded-full text-white sm:hidden backdrop-blur-md border border-white/10 hover:bg-[#E8B923] hover:text-black transition-all"
+            >
+              <X size={20} />
+            </button>
 
+            {/* Badge "Personas viendo" (desktop) */}
             <div className="hidden sm:flex items-center gap-2 bg-[#E8B923]/20 border border-[#E8B923]/30 px-3 py-1 rounded-full animate-pulse pointer-events-auto">
               <div className="w-2 h-2 bg-[#E8B923] rounded-full" />
-              <span className="text-[9px] text-[#E8B923] font-bold uppercase tracking-wider">15 Personas viendo</span>
+              <span className="text-[9px] text-[#E8B923] font-bold uppercase tracking-wider">
+                15 Personas viendo
+              </span>
             </div>
           </div>
 
+          {/* Contenedor de imagen principal */}
           <div className="flex-1 relative overflow-hidden flex items-center justify-center group bg-zinc-900">
             <AnimatePresence mode="wait">
               <motion.img
                 layoutId={`image-container-${car.id}`}
                 key={`${activeTab}-${currentImgIdx}`}
                 src={currentImage}
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
                 transition={{ duration: 0.4 }}
-                className={`w-full h-full object-contain transition-transform duration-700 ${isZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in'}`}
+                className={`w-full h-full object-contain transition-transform duration-700 ${
+                  isZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in'
+                }`}
                 onClick={() => setIsZoomed(!isZoomed)}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "https://via.placeholder.com/800x600?text=Error+Imagen";
+                }}
               />
             </AnimatePresence>
-            {!isZoomed && car.hotspots?.filter((h: Hotspot) => h.imageIndex === currentImgIdx || (h.imageIndex === undefined && currentImgIdx === 0)).map((spot: Hotspot) => (
+
+            {/* Hotspots interactivos */}
+            {!isZoomed && car.hotspots?.filter((h: Hotspot) => 
+              h.imageIndex === currentImgIdx || (h.imageIndex === undefined && currentImgIdx === 0)
+            ).map((spot: Hotspot) => (
               <motion.div
                 key={spot.id}
-                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                initial={{ scale: 0 }} 
+                animate={{ scale: 1 }}
                 className="absolute w-6 h-6 -ml-3 -mt-3 z-30 cursor-pointer group/hotspot"
                 style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
               >
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[#E8B923] opacity-75 animate-ping"></span>
+                {/* Animación ping */}
+                <span className="absolute inline-flex h-full w-full rounded-full bg-[#E8B923] opacity-75 animate-ping" />
+                
+                {/* Punto central */}
                 <span className="relative inline-flex rounded-full h-6 w-6 bg-[#E8B923] border-2 border-white items-center justify-center shadow-lg">
                   <span className="w-1.5 h-1.5 bg-white rounded-full" />
                 </span>
-                <div className="absolute left-1/2 -translate-x-1/2 top-8 lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-4 w-40 sm:w-48 bg-black/90 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl opacity-0 group-hover/hotspot:opacity-100 transition-opacity pointer-events-none">
-                  <p className="text-[10px] text-[#E8B923] font-bold uppercase tracking-widest mb-1">{spot.label}</p>
-                  <p className="text-xs text-white leading-snug">{spot.detail}</p>
+                
+                {/* Tooltip */}
+                <div className="absolute left-1/2 -translate-x-1/2 top-8 lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-4 w-40 sm:w-48 bg-black/90 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl opacity-0 group-hover/hotspot:opacity-100 transition-opacity pointer-events-none z-50">
+                  <p className="text-[10px] text-[#E8B923] font-bold uppercase tracking-widest mb-1">
+                    {spot.label}
+                  </p>
+                  <p className="text-xs text-white leading-snug">
+                    {spot.detail}
+                  </p>
                 </div>
               </motion.div>
             ))}
-            <button onClick={() => setCurrentImgIdx(prev => prev > 0 ? prev - 1 : activeImages.length - 1)} className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-black/50 text-white rounded-full hover:bg-[#E8B923] hover:text-black transition-all border border-white/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-40"><ChevronLeft size={20} /></button>
-            <button onClick={() => setCurrentImgIdx(prev => prev < activeImages.length - 1 ? prev + 1 : 0)} className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-black/50 text-white rounded-full hover:bg-[#E8B923] hover:text-black transition-all border border-white/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-40"><ChevronRight size={20} /></button>
+
+            {/* Botones de navegación */}
+            <button 
+              onClick={goToPrevImage}
+              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-black/50 text-white rounded-full hover:bg-[#E8B923] hover:text-black transition-all border border-white/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-40"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            
+            <button 
+              onClick={goToNextImage}
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-black/50 text-white rounded-full hover:bg-[#E8B923] hover:text-black transition-all border border-white/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-40"
+            >
+              <ChevronRight size={20} />
+            </button>
           </div>
 
+          {/* Thumbnails */}
           <div className="h-20 sm:h-24 bg-[#050505] border-t border-white/10 flex items-center gap-2 sm:gap-3 px-4 sm:px-6 overflow-x-auto scrollbar-hide">
             {activeImages.map((img: string, idx: number) => (
-              <button key={idx} onClick={() => setCurrentImgIdx(idx)} className={`relative flex-shrink-0 w-20 sm:w-24 h-14 sm:h-16 rounded-lg overflow-hidden border-2 transition-all ${currentImgIdx === idx ? 'border-[#E8B923] scale-105' : 'border-transparent opacity-50 hover:opacity-100'}`}>
-                <img src={img} className="w-full h-full object-cover" />
+              <button 
+                key={idx} 
+                onClick={() => setCurrentImgIdx(idx)} 
+                className={`relative flex-shrink-0 w-20 sm:w-24 h-14 sm:h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  currentImgIdx === idx 
+                    ? 'border-[#E8B923] scale-105 shadow-lg shadow-[#E8B923]/30' 
+                    : 'border-transparent opacity-50 hover:opacity-100 hover:border-white/20'
+                }`}
+              >
+                <img 
+                  src={img} 
+                  className="w-full h-full object-cover" 
+                  alt={`Vista ${idx + 1}`}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "https://via.placeholder.com/150x100?text=Error";
+                  }}
+                />
               </button>
             ))}
           </div>
         </div>
 
-        {/* Sección Info */}
+        {/* ========== SECCIÓN DERECHA: INFORMACIÓN ========== */}
         <div className="w-full lg:w-[35%] flex-1 lg:h-full min-h-0 flex flex-col bg-[#08080a] border-l border-white/10 relative">
 
-          <button onClick={onClose} className="hidden sm:block absolute top-4 right-4 z-50 text-gray-500 hover:text-[#E8B923] transition-colors"><X size={24} /></button>
+          {/* Botón cerrar (desktop) */}
+          <button 
+            onClick={onClose} 
+            className="hidden sm:block absolute top-4 right-4 z-50 text-gray-500 hover:text-[#E8B923] transition-colors"
+          >
+            <X size={24} />
+          </button>
 
+          {/* Contenido scrolleable */}
           <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8">
+            
+            {/* Cabecera del vehículo */}
             <div className="mb-6 sm:mb-8 border-b border-white/5 pb-6 sm:pb-8">
-              <h3 className="text-[#E8B923] text-xs font-black uppercase tracking-[0.4em] mb-2">{car.marca}</h3>
-              <motion.h2 layoutId={`title-${car.id}`} className="text-3xl sm:text-4xl md:text-5xl font-black italic text-white tracking-tighter mb-4 leading-none">{car.modelo}</motion.h2>
+              <h3 className="text-[#E8B923] text-xs font-black uppercase tracking-[0.4em] mb-2">
+                {car.marca}
+              </h3>
+              <motion.h2 
+                layoutId={`title-${car.id}`} 
+                className="text-3xl sm:text-4xl md:text-5xl font-black italic text-white tracking-tighter mb-4 leading-none"
+              >
+                {car.modelo}
+              </motion.h2>
               <div className="flex flex-wrap items-end gap-3 sm:gap-4">
-                <motion.span layoutId={`price-${car.id}`} className="text-2xl sm:text-3xl font-bold text-white">{formatPrice(car.precio)}</motion.span>
+                <motion.span 
+                  layoutId={`price-${car.id}`} 
+                  className="text-2xl sm:text-3xl font-bold text-white"
+                >
+                  {formatPrice(car.precio)}
+                </motion.span>
                 {car.estado === 'Disponible' && (
                   <span className="bg-green-500/10 text-green-500 border border-green-500/20 px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest mb-1">
                     Entrega Inmediata
@@ -440,30 +593,35 @@ const CarModal = ({ car, onClose, onContact, onOpenFinance }: { car: Vehiculo; o
               </div>
             </div>
 
+            {/* Grid de características destacadas */}
             <div className="grid grid-cols-2 gap-3 mb-8">
-              {/* Opción Retoma Activa */}
-              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex items-center gap-3">
+              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex items-center gap-3 hover:bg-white/10 transition-all">
                 <RefreshCw size={18} className="text-blue-400 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[8px] sm:text-[9px] text-gray-400 uppercase font-bold">Retoma</p>
                   <p className="text-[10px] text-white font-bold truncate">Recibimos tu Auto</p>
                 </div>
               </div>
-              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex items-center gap-3">
+              
+              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex items-center gap-3 hover:bg-white/10 transition-all">
                 <User size={18} className="text-purple-400 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[8px] sm:text-[9px] text-gray-400 uppercase font-bold">Dueños</p>
-                  <p className="text-xs text-white font-bold truncate">{car.duenos} Propietario{car.duenos > 1 ? 's' : ''}</p>
+                  <p className="text-xs text-white font-bold truncate">
+                    {car.duenos} Propietario{car.duenos > 1 ? 's' : ''}
+                  </p>
                 </div>
               </div>
-              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex items-center gap-3">
+              
+              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex items-center gap-3 hover:bg-white/10 transition-all">
                 <FileCheck size={18} className="text-green-400 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[8px] sm:text-[9px] text-gray-400 uppercase font-bold">Papeles</p>
                   <p className="text-xs text-white font-bold truncate">Al Día 2026</p>
                 </div>
               </div>
-              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex items-center gap-3">
+              
+              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex items-center gap-3 hover:bg-white/10 transition-all">
                 <Settings size={18} className="text-orange-400 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[8px] sm:text-[9px] text-gray-400 uppercase font-bold">Inspección</p>
@@ -472,7 +630,10 @@ const CarModal = ({ car, onClose, onContact, onOpenFinance }: { car: Vehiculo; o
               </div>
             </div>
 
-            <h4 className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-4">Ficha Técnica</h4>
+            {/* Ficha Técnica */}
+            <h4 className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-4">
+              Ficha Técnica
+            </h4>
             <div className="grid grid-cols-2 gap-y-5 gap-x-4 mb-8">
               {[
                 { label: 'Año', val: car.ano, icon: Calendar },
@@ -483,47 +644,122 @@ const CarModal = ({ car, onClose, onContact, onOpenFinance }: { car: Vehiculo; o
                 { label: 'Tracción', val: car.traccion || '4x2', icon: Activity },
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <div className="p-2 bg-neutral-900 rounded-lg text-[#E8B923] border border-white/5 shrink-0"><item.icon size={16} /></div>
-                  <div className="min-w-0"><p className="text-[9px] text-gray-500 uppercase font-bold">{item.label}</p><p className="text-sm text-white font-bold truncate">{item.val}</p></div>
+                  <div className="p-2 bg-neutral-900 rounded-lg text-[#E8B923] border border-white/5 shrink-0">
+                    <item.icon size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] text-gray-500 uppercase font-bold">{item.label}</p>
+                    <p className="text-sm text-white font-bold truncate">{item.val}</p>
+                  </div>
                 </div>
               ))}
             </div>
 
+            {/* Financiamiento (si aplica) */}
             {car.financiable && (
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#A37A00]/40 to-black border border-[#E8B923]/30 p-5 mb-8 group">
-                <div className="absolute top-0 right-0 p-2 bg-[#E8B923] text-black text-[9px] font-black uppercase tracking-widest rounded-bl-xl">Oportunidad</div>
-                <p className="text-[10px] text-[#FFE65F] font-bold uppercase tracking-[0.2em] mb-1">Financiamiento Flexible</p>
-                <div className="flex items-end gap-2 mb-2"><span className="text-3xl sm:text-4xl font-black text-white italic">24/48</span><span className="text-sm font-bold text-gray-400 mb-1">Cuotas</span></div>
-                <p className="text-xs text-gray-300">Llévatelo con un pie desde <span className="text-white font-bold">{formatPrice(car.valorPie)}</span>. Evaluación en 15 minutos.</p>
-                <button onClick={onOpenFinance} className="mt-4 w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2"><Calculator size={14} className="text-[#E8B923]" /> Simular Crédito</button>
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#A37A00]/40 to-black border border-[#E8B923]/30 p-5 mb-8 group hover:from-[#A37A00]/50 transition-all">
+                <div className="absolute top-0 right-0 p-2 bg-[#E8B923] text-black text-[9px] font-black uppercase tracking-widest rounded-bl-xl">
+                  Oportunidad
+                </div>
+                <p className="text-[10px] text-[#FFE65F] font-bold uppercase tracking-[0.2em] mb-1">
+                  Financiamiento Flexible
+                </p>
+                <div className="flex items-end gap-2 mb-2">
+                  <span className="text-3xl sm:text-4xl font-black text-white italic">24/48</span>
+                  <span className="text-sm font-bold text-gray-400 mb-1">Cuotas</span>
+                </div>
+                <p className="text-xs text-gray-300">
+                  Llévatelo con un pie desde <span className="text-white font-bold">{formatPrice(car.valorPie || car.precio * 0.2)}</span>. Evaluación en 15 minutos.
+                </p>
+                <button 
+                  onClick={onOpenFinance} 
+                  className="mt-4 w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <Calculator size={14} className="text-[#E8B923]" /> 
+                  Simular Crédito
+                </button>
               </div>
             )}
 
-            <div className="mb-8 p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between group cursor-pointer hover:bg-white/10 transition-all">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-white p-1 rounded-lg shrink-0">
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`Lions Cars: ${car.marca} ${car.modelo} ID:${car.id}`)}`} alt="QR" className="w-full h-full" />
+            {/* QR y PDF */}
+            <div className="mb-8 flex flex-col gap-3">
+              {/* Bloque QR */}
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between group cursor-pointer hover:bg-white/10 transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white p-1 rounded-lg shrink-0">
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`Lions Cars: ${car.marca} ${car.modelo} ID:${car.id}`)}`} 
+                      alt="QR Code" 
+                      className="w-full h-full" 
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white flex items-center gap-2">
+                      <Smartphone size={14} className="text-[#E8B923]" /> 
+                      Ficha Digital
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Escanea para llevar en tu móvil</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-white flex items-center gap-2"><Smartphone size={14} className="text-[#E8B923]" /> Ficha Digital</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">Escanea para llevar en tu móvil</p>
+                <div className="bg-[#E8B923]/20 p-2 rounded-lg text-[#E8B923] group-hover:bg-[#E8B923] group-hover:text-black transition-all">
+                  <QrCode size={20} />
                 </div>
               </div>
-              <div className="bg-[#E8B923]/20 p-2 rounded-lg text-[#E8B923] group-hover:bg-[#E8B923] group-hover:text-black transition-all"><QrCode size={20} /></div>
+
+              {/* Botón PDF */}
+              <PDFDownloadLink
+                document={<CarPdfDocument car={car} />}
+                fileName={`Ficha_LionsCars_${car.marca}_${car.modelo}.pdf`}
+                className="w-full"
+              >
+                {/* @ts-ignore */}
+                {({ blob, url, loading, error }) => (
+                  <button 
+                    disabled={loading}
+                    className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-900 disabled:cursor-not-allowed border border-white/10 text-white rounded-xl flex items-center justify-center gap-3 transition-all font-bold text-xs uppercase tracking-widest"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-[#E8B923] border-t-transparent rounded-full animate-spin" />
+                        <span>Generando PDF...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileDown size={18} className="text-[#E8B923]" /> 
+                        Descargar Ficha Técnica PDF
+                      </>
+                    )}
+                  </button>
+                )}
+              </PDFDownloadLink>
             </div>
 
+            {/* Observaciones */}
             <div className="mb-4">
-              <h4 className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-2">Observaciones</h4>
-              <p className="text-sm text-gray-300 leading-relaxed border-l-2 border-[#E8B923] pl-4 italic">"{car.obs}"</p>
+              <h4 className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-2">
+                Observaciones
+              </h4>
+              <p className="text-sm text-gray-300 leading-relaxed border-l-2 border-[#E8B923] pl-4 italic">
+                "{car.obs || 'Sin observaciones adicionales.'}"
+              </p>
             </div>
-            <div className="h-4"></div>
+            
+            {/* Espacio extra para scroll */}
+            <div className="h-4" />
           </div>
 
+          {/* Footer fijo con botón de contacto */}
           <div className="shrink-0 w-full bg-[#08080a]/95 backdrop-blur-xl border-t border-white/10 p-4 sm:p-6 z-20">
-            <button onClick={() => onContact(car)} className="w-full py-4 bg-gradient-to-r from-[#DAA520] to-[#E8B923] hover:from-[#FFE65F] hover:to-[#DAA520] text-black font-black text-sm uppercase tracking-[0.2em] rounded-xl shadow-[0_0_30px_rgba(232,185,35,0.4)] transition-all flex items-center justify-center gap-3 group">
-              <MessageCircle size={20} className="group-hover:scale-110 transition-transform" /> Contactar Vendedor
+            <button 
+              onClick={() => onContact(car)} 
+              className="w-full py-4 bg-gradient-to-r from-[#DAA520] to-[#E8B923] hover:from-[#FFE65F] hover:to-[#DAA520] text-black font-black text-sm uppercase tracking-[0.2em] rounded-xl shadow-[0_0_30px_rgba(232,185,35,0.4)] transition-all flex items-center justify-center gap-3 group"
+            >
+              <MessageCircle size={20} className="group-hover:scale-110 transition-transform" /> 
+              Contactar Vendedor
             </button>
-            <p className="text-center text-[9px] text-gray-500 mt-3 font-bold uppercase">Respuesta promedio: 5 Minutos</p>
+            <p className="text-center text-[9px] text-gray-500 mt-3 font-bold uppercase">
+              Respuesta promedio: 5 Minutos
+            </p>
           </div>
         </div>
       </motion.div>
@@ -615,6 +851,8 @@ const Footer = () => {
 
 function App() {
   const [stock, setStock] = useState<Vehiculo[]>([]);
+  const navigate = useNavigate();
+  const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [selectedSeller, setSelectedSeller] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
@@ -645,9 +883,24 @@ function App() {
   });
 
   // --- CARGA DE DATOS DESDE BACKEND ---
-  useEffect(() => {
-    fetchCars();
-  }, []);
+// CON ESTA VERSIÓN MEJORADA:
+useEffect(() => {
+  if (id && stock.length > 0) {
+    const carFound = stock.find(v => v.id === Number(id));
+    if (carFound) {
+      setSelectedCar(carFound);
+    } else {
+      // Si no encuentra el carro, redirige al catálogo
+      navigate('/');
+    }
+  } else if (!id) {
+    setSelectedCar(null);
+  }
+}, [id, stock, navigate]);
+
+useEffect(() => {
+  fetchCars();
+}, []);
 
   const fetchCars = async () => {
     try {
@@ -838,9 +1091,9 @@ function App() {
                   variants={fadeInUpSpring}
                   className="text-gray-300 text-base sm:text-lg md:text-xl mb-6 sm:mb-8 leading-relaxed max-w-lg"
                 >
-                  Vehículos seleccionados, inspeccionados y con garantía.
+                  Vehículos seminuevos seleccionados e inspeccionados.
                   <span className="text-white font-bold">
-                    {" "}Calidad premium y financiamiento inmediato.
+                    {" "}Compra y vende seguro con LIONS CARS. Marcamos la diferencia.
                   </span>
                 </motion.p>
 
@@ -940,7 +1193,12 @@ function App() {
                       <motion.div variants={containerStagger} initial="hidden" animate="show" layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
                         {filteredStock.map((car) => (
                           <motion.div key={car.id} variants={fadeInUpSpring} layout>
-                            <CarCard car={car} onClick={setSelectedCar} isFavorite={favorites.includes(car.id)} onToggleFavorite={toggleFavorite} />
+                            <CarCard 
+  car={car} 
+  onClick={(car) => navigate(`/vehiculo/${car.id}`)}
+  isFavorite={favorites.includes(car.id)} 
+  onToggleFavorite={toggleFavorite} 
+/>
                           </motion.div>
                         ))}
                       </motion.div>
@@ -970,8 +1228,15 @@ function App() {
       <Footer />
 
       <AnimatePresence>
-        {selectedCar && <CarModal car={selectedCar} onClose={() => setSelectedCar(null)} onContact={handleContact} onOpenFinance={() => setFinanceCar(selectedCar)} />}
-      </AnimatePresence>
+  {selectedCar && (
+    <CarModal 
+      car={selectedCar} 
+      onClose={() => navigate("/")}
+      onContact={handleContact} 
+      onOpenFinance={() => setFinanceCar(selectedCar)} 
+    />
+  )}
+</AnimatePresence>
       <AnimatePresence>
         {financeCar && <FinanceModal car={financeCar} onClose={() => setFinanceCar(null)} />}
       </AnimatePresence>

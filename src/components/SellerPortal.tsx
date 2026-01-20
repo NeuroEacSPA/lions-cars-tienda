@@ -485,14 +485,22 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
   );
 };
 
+ // Asegúrate de importar AlertTriangle arriba en tu archivo:
+// import { ..., AlertTriangle } from 'lucide-react';
+
 // 3. SETTINGS VIEW
 const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [colors, setColors] = useState<Color[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  
+  // Estados para los formularios existentes
   const [newBrand, setNewBrand] = useState('');
   const [newColor, setNewColor] = useState('');
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'vendedor' });
+
+  // 1. NUEVO ESTADO PARA EL BOTÓN DE OPTIMIZACIÓN
+  const [isOptimizing, setIsOptimizing] = useState(false); // <--- NUEVO
 
   useEffect(() => {
     const loadData = async () => {
@@ -511,10 +519,94 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
   const addUser = async () => { if (newUser.username && newUser.password) { await carService.createUser(newUser as User); setNewUser({ username: '', password: '', role: 'vendedor' }); showToast('Usuario creado', 'success'); } };
   const delUser = async (id: number) => { await carService.deleteUser(id); showToast('Usuario eliminado', 'info'); };
 
+  // 2. NUEVA LÓGICA DE OPTIMIZACIÓN MASIVA (INICIO) --->
+  const handleEmergencyOptimize = async () => {
+    if (!window.confirm("⚠️ ATENCIÓN: Esto procesará TODAS las imágenes de la base de datos para reducir su peso.\n\nEste proceso puede tardar unos minutos.\n¿Estás seguro de continuar?")) return;
+    
+    setIsOptimizing(true);
+    showToast("Iniciando optimización masiva...", "info");
+
+    // Función auxiliar interna para comprimir Base64
+    const compressBase64 = (base64: string): Promise<string> => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.src = base64;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1000; // Calidad segura
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+             ctx.drawImage(img, 0, 0, width, height);
+             // Comprimir a WebP calidad 0.6
+             resolve(canvas.toDataURL('image/webp', 0.6));
+          } else {
+             resolve(base64);
+          }
+        };
+        img.onerror = () => resolve(base64); // Si falla, devolver original
+      });
+    };
+
+    try {
+      // 1. Traemos todos los autos
+      const allCars = await carService.getAll(); 
+      let processedCount = 0;
+      
+      for (const car of allCars) {
+        let modified = false;
+        const newImages = [];
+
+        // 2. Revisamos sus imágenes
+        if (car.imagenes && car.imagenes.length > 0) {
+          for (const img of car.imagenes) {
+              // Solo comprimir si es base64 y es muy pesado (>300kb de texto aprox)
+              if (img.startsWith('data:image') && img.length > 300000) { 
+                  const optimized = await compressBase64(img);
+                  newImages.push(optimized);
+                  modified = true;
+              } else {
+                  newImages.push(img);
+              }
+          }
+        }
+
+        // 3. Si optimizamos algo, guardamos en base de datos
+        if (modified) {
+          await carService.update({ ...car, imagenes: newImages });
+          processedCount++;
+        }
+      }
+      showToast(`¡Listo! Se optimizaron ${processedCount} vehículos.`, "success");
+    } catch (error) {
+      console.error(error);
+      showToast("Error durante la optimización.", "error");
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+  // <--- NUEVA LÓGICA DE OPTIMIZACIÓN MASIVA (FIN)
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8 p-4">
       <h2 className="text-2xl md:text-4xl font-black italic tracking-tighter text-white">CONFIGURACIÓN <span className="text-[#E8B923]">SISTEMA</span></h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      
+      {/* CAMBIO EN EL GRID: 
+          Originalmente era 'md:grid-cols-3'. 
+          Puedes dejarlo así (la tarjeta roja bajará a la siguiente fila) 
+          o cambiarlo a 'md:grid-cols-2 lg:grid-cols-4' para que quepan todos.
+      */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        
         {/* MARCAS */}
         <div className={`${GLASS_BG} rounded-3xl p-6`}>
           <h3 className="text-sm font-bold text-[#E8B923] mb-4 flex items-center gap-2"><Award size={16} /> GESTIÓN MARCAS</h3>
@@ -526,6 +618,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
             {brands.map(b => (<div key={b.id} className="flex justify-between items-center bg-white/5 p-2 rounded-lg hover:bg-white/10"><span className="text-xs text-white">{b.name}</span><button onClick={() => delBrand(b.id)} className="text-neutral-500 hover:text-red-500"><Trash2 size={12} /></button></div>))}
           </div>
         </div>
+
         {/* COLORES */}
         <div className={`${GLASS_BG} rounded-3xl p-6`}>
           <h3 className="text-sm font-bold text-blue-500 mb-4 flex items-center gap-2"><ImagePlus size={16} /> GESTIÓN COLORES</h3>
@@ -537,6 +630,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
             {colors.map(c => (<div key={c.id} className="flex justify-between items-center bg-white/5 p-2 rounded-lg hover:bg-white/10"><span className="text-xs text-white">{c.name}</span><button onClick={() => delColor(c.id)} className="text-neutral-500 hover:text-red-500"><Trash2 size={12} /></button></div>))}
           </div>
         </div>
+
         {/* USUARIOS */}
         <div className={`${GLASS_BG} rounded-3xl p-6`}>
           <h3 className="text-sm font-bold text-green-500 mb-4 flex items-center gap-2"><Users size={16} /> GESTIÓN USUARIOS</h3>
@@ -549,6 +643,38 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
             {users.map(u => (<div key={u.id} className="flex justify-between items-center bg-white/5 p-2 rounded-lg hover:bg-white/10"><span className="text-xs text-white">{u.username} <span className="text-neutral-500">({u.role})</span></span><button onClick={() => delUser(u.id)} className="text-neutral-500 hover:text-red-500"><Trash2 size={12} /></button></div>))}
           </div>
         </div>
+
+        {/* 3. NUEVA TARJETA: ZONA DE PELIGRO (INICIO) ---> */}
+        <div className={`${GLASS_BG} rounded-3xl p-6 border border-red-500/20 bg-red-500/5`}>
+          <h3 className="text-sm font-bold text-red-500 mb-4 flex items-center gap-2">
+            <AlertTriangle size={16} /> MANTENIMIENTO
+          </h3>
+          <p className="text-xs text-gray-400 mb-4 leading-relaxed">
+            Si el sistema carga lento, usa esta herramienta para comprimir todas las imágenes antiguas de la base de datos.
+          </p>
+          <div className="mt-auto">
+             <button 
+              onClick={handleEmergencyOptimize} 
+              disabled={isOptimizing}
+              className={`w-full py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
+                  isOptimizing 
+                  ? 'bg-neutral-800 text-gray-500 cursor-not-allowed' 
+                  : 'bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500 hover:text-white'
+              }`}
+            >
+              {isOptimizing ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    OPTIMIZANDO...
+                  </>
+              ) : (
+                  'OPTIMIZAR IMÁGENES DB'
+              )}
+            </button>
+          </div>
+        </div>
+        {/* <--- NUEVA TARJETA: ZONA DE PELIGRO (FIN) */}
+
       </div>
     </motion.div>
   );
@@ -654,23 +780,55 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
   const imagePreviewRef = useRef<HTMLDivElement>(null);
 
   // Manejo de Imágenes
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // --- FUNCIÓN DE CARGA OPTIMIZADA ---
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (ev.target?.result) {
-          const newImage = ev.target.result as string;
-          setFormData(prev => ({
-            ...prev,
-            imagen: (!prev.imagenes || prev.imagenes.length === 0) ? newImage : prev.imagen,
-            imagenes: [...(prev.imagenes || []), newImage]
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+
+    // Utilidad interna para comprimir
+    const compressFile = (file: File): Promise<string> => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target?.result as string;
+          img.onload = () => {
+            // Configuración de compresión
+            const MAX_WIDTH = 1280; // Ancho máximo seguro para web
+            let width = img.width;
+            let height = img.height;
+
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              // Exportar a WebP calidad 70% (reduce tamaño drásticamente)
+              resolve(canvas.toDataURL('image/webp', 0.7)); 
+            } else {
+              resolve(img.src); // Fallback si falla el canvas
+            }
+          };
+        };
+      });
+    };
+
+    // Procesar todas las imágenes seleccionadas
+    const newImages = await Promise.all(Array.from(files).map(compressFile));
+
+    setFormData(prev => ({
+      ...prev,
+      imagen: (!prev.imagenes || prev.imagenes.length === 0) ? newImages[0] : prev.imagen,
+      imagenes: [...(prev.imagenes || []), ...newImages]
+    }));
   };
 
   const removeImage = (index: number) => {
@@ -757,7 +915,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Field label="Versión" value={formData.version} onChange={(v) => setFormData({ ...formData, version: v })} />
-            <SelectField label="Carrocería" value={formData.carroceria} options={['SUV', 'Sedán', 'Hatchback', 'Camioneta', 'Coupé']} onChange={(v) => setFormData({ ...formData, carroceria: v })} />
+            <SelectField label="Carrocería" value={formData.carroceria} options={['SUV', 'Sedán', 'Hatchback', 'Camioneta', 'Coupé', 'Furgon']} onChange={(v) => setFormData({ ...formData, carroceria: v })} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <SelectField label="Año" value={formData.ano?.toString()} options={YEARS} onChange={(v) => setFormData({ ...formData, ano: parseInt(v) })} />
