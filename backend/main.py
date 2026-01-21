@@ -1,130 +1,300 @@
-from fastapi import FastAPI, Depends, HTTPException
+import sqlite3
+import shutil
+import os
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from pydantic import BaseModel
+from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from typing import List
+import json
 
-import models, schemas
-from database import engine, get_db
+app = FastAPI()
 
-# Al actualizar modelos, recreamos tablas (en dev es seguro, en prod usar Alembic)
-models.Base.metadata.create_all(bind=engine)
-
-app = FastAPI(
-    title="Lions Cars API",
-    version="0.1.0",
-    root_path="/api"
-)
+# --- CONFIGURACIÓN CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- RUTAS DE VEHÍCULOS (Ya existían) ---
-@app.get("/autos", response_model=List[schemas.Vehiculo])
-def obtener_autos(db: Session = Depends(get_db)):
-    return db.query(models.VehiculoDB).order_by(models.VehiculoDB.id.desc()).all()
+DB_NAME = "lions_cars.db"
+# RUTA ABSOLUTA DONDE SE GUARDARÁN LAS FOTOS (Debe coincidir con la config de Nginx)
+UPLOAD_DIR = "/home/neuro/lions-cars-tienda/uploads"
 
-@app.post("/autos", response_model=schemas.Vehiculo)
-def crear_auto(auto: schemas.VehiculoCreate, db: Session = Depends(get_db)):
-    db_auto = models.VehiculoDB(**auto.model_dump())
-    db.add(db_auto)
-    db.commit()
-    db.refresh(db_auto)
-    return db_auto
+# Asegurarse de que la carpeta base exista
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-@app.put("/autos/{auto_id}", response_model=schemas.Vehiculo)
-def actualizar_auto(auto_id: int, auto_update: schemas.VehiculoCreate, db: Session = Depends(get_db)):
-    db_auto = db.query(models.VehiculoDB).filter(models.VehiculoDB.id == auto_id).first()
-    if not db_auto:
-        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
-    update_data = auto_update.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_auto, key, value)
-    db.commit()
-    db.refresh(db_auto)
-    return db_auto
+# --- MODELOS DE DATOS ---
 
-@app.delete("/autos/{auto_id}")
-def eliminar_auto(auto_id: int, db: Session = Depends(get_db)):
-    db_auto = db.query(models.VehiculoDB).filter(models.VehiculoDB.id == auto_id).first()
-    if not db_auto:
-        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
-    db.delete(db_auto)
-    db.commit()
-    return {"mensaje": "Vehículo eliminado"}
+class Hotspot(BaseModel):
+    id: str
+    x: float
+    y: float
+    label: str
+    detail: str
+    imageIndex: Optional[int] = 0
 
-# --- RUTAS DE GESTIÓN (NUEVAS) ---
+class Vehiculo(BaseModel):
+    id: Optional[int] = None
+    marca: str
+    modelo: str
+    version: Optional[str] = ""
+    ano: int
+    precio: int
+    km: int
+    duenos: int
+    traccion: Optional[str] = ""
+    transmision: str
+    cilindrada: Optional[str] = ""
+    combustible: str
+    carroceria: str
+    puertas: int
+    pasajeros: int
+    motor: Optional[str] = ""
+    techo: bool
+    asientos: str
+    tipoVenta: str
+    vendedor: str
+    financiable: bool
+    valorPie: int
+    aire: bool
+    neumaticos: str
+    llaves: int
+    obs: str
+    imagenes: List[str]
+    imagen: str
+    estado: str
+    diasStock: int
+    vistas: int
+    interesados: int
+    patente: str
+    color: str
+    comisionEstimada: int
+    precioHistorial: List[dict]
+    hotspots: List[Hotspot]
 
-# 1. Marcas
-@app.get("/brands", response_model=List[schemas.Brand])
-def get_brands(db: Session = Depends(get_db)):
-    return db.query(models.BrandDB).order_by(models.BrandDB.name).all()
+class Brand(BaseModel):
+    name: str
 
-@app.post("/brands", response_model=schemas.Brand)
-def create_brand(brand: schemas.BrandBase, db: Session = Depends(get_db)):
-    db_brand = models.BrandDB(name=brand.name)
-    db.add(db_brand)
-    db.commit()
-    db.refresh(db_brand)
-    return db_brand
+class Color(BaseModel):
+    name: str
+    hex: Optional[str] = None
 
-@app.delete("/brands/{id}")
-def delete_brand(id: int, db: Session = Depends(get_db)):
-    db_obj = db.query(models.BrandDB).filter(models.BrandDB.id == id).first()
-    if db_obj:
-        db.delete(db_obj)
-        db.commit()
-    return {"ok": True}
+class User(BaseModel):
+    username: str
+    password: str
+    role: Optional[str] = "vendedor"
 
-# 2. Colores
-@app.get("/colors", response_model=List[schemas.Color])
-def get_colors(db: Session = Depends(get_db)):
-    return db.query(models.ColorDB).order_by(models.ColorDB.name).all()
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
-@app.post("/colors", response_model=schemas.Color)
-def create_color(color: schemas.ColorBase, db: Session = Depends(get_db)):
-    db_color = models.ColorDB(name=color.name, hex=color.hex)
-    db.add(db_color)
-    db.commit()
-    db.refresh(db_color)
-    return db_color
+# --- BASE DE DATOS ---
+def init_db():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS vehiculos (id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS brands (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS colors (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, hex TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT, role TEXT)''')
+    try:
+        c.execute("INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)", ("admin", "admin", "admin"))
+    except: pass
+    conn.commit()
+    conn.close()
 
-@app.delete("/colors/{id}")
-def delete_color(id: int, db: Session = Depends(get_db)):
-    db_obj = db.query(models.ColorDB).filter(models.ColorDB.id == id).first()
-    if db_obj:
-        db.delete(db_obj)
-        db.commit()
-    return {"ok": True}
+init_db()
 
-# 3. Usuarios
-@app.get("/users", response_model=List[schemas.User])
-def get_users(db: Session = Depends(get_db)):
-    return db.query(models.UserDB).all()
+# --- ENDPOINTS ---
 
-@app.post("/users", response_model=schemas.User)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    # En un sistema real, aquí hashearías la contraseña
-    db_user = models.UserDB(username=user.username, password=user.password, role=user.role)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+# NUEVO ENDPOINT PARA SUBIR IMÁGENES
+@app.post("/api/upload")
+async def upload_image(
+    file: UploadFile = File(...), 
+    marca: str = Form(...), 
+    modelo: str = Form(...)
+):
+    """
+    Recibe un archivo + marca + modelo.
+    Guarda el archivo en: /uploads/marca_modelo/filename.ext
+    Devuelve la URL pública.
+    """
+    try:
+        # 1. Limpiar nombres para crear carpeta (ej: "Toyota Corolla" -> "toyota_corolla")
+        clean_folder = f"{marca.strip()}_{modelo.strip()}".lower().replace(" ", "_")
+        
+        # 2. Crear la ruta completa de la carpeta
+        target_folder = os.path.join(UPLOAD_DIR, clean_folder)
+        os.makedirs(target_folder, exist_ok=True) # Crea la carpeta si no existe
 
-@app.post("/login")
-def login(user: schemas.UserBase, db: Session = Depends(get_db)):
-    db_user = db.query(models.UserDB).filter(models.UserDB.username == user.username, models.UserDB.password == user.password).first()
-    if not db_user:
-        raise HTTPException(status_code=400, detail="Credenciales incorrectas")
-    return {"status": "ok", "user": db_user.username, "role": db_user.role}
+        # 3. Manejo de nombre de archivo y duplicados
+        filename = file.filename.replace(" ", "_") # Quitar espacios del nombre del archivo
+        file_location = os.path.join(target_folder, filename)
 
-@app.delete("/users/{id}")
-def delete_user(id: int, db: Session = Depends(get_db)):
-    db_obj = db.query(models.UserDB).filter(models.UserDB.id == id).first()
-    if db_obj:
-        db.delete(db_obj)
-        db.commit()
-    return {"ok": True}
+        # Si el archivo ya existe, le agregamos un número (ej: auto_1.jpg)
+        base_name, extension = os.path.splitext(filename)
+        counter = 1
+        while os.path.exists(file_location):
+            filename = f"{base_name}_{counter}{extension}"
+            file_location = os.path.join(target_folder, filename)
+            counter += 1
+
+        # 4. Guardar el archivo físicamente
+        with open(file_location, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # 5. Generar la URL pública (HTTPS)
+        # Nginx mapea /uploads/ -> UPLOAD_DIR
+        public_url = f"https://lionscars.cl/uploads/{clean_folder}/{filename}"
+        
+        return {"url": public_url}
+
+    except Exception as e:
+        print(f"Error subiendo imagen: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# 1. AUTOS
+@app.get("/api/autos")
+def get_autos():
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT * FROM vehiculos")
+    rows = c.fetchall()
+    conn.close()
+    
+    results = []
+    for row in rows:
+        try:
+            car_data = json.loads(row["data"])
+            car_data["id"] = row["id"]
+            results.append(car_data)
+        except:
+            continue
+    return results
+
+@app.post("/api/autos")
+def create_auto(auto: Vehiculo):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    # Ahora 'auto.imagenes' ya debe venir con URLs reales desde el frontend
+    json_data = auto.json(exclude={"id"})
+    c.execute("INSERT INTO vehiculos (data) VALUES (?)", (json_data,))
+    new_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    return {**auto.dict(), "id": new_id}
+
+@app.put("/api/autos/{item_id}")
+def update_auto(item_id: int, auto: Vehiculo):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    json_data = auto.json(exclude={"id"})
+    c.execute("UPDATE vehiculos SET data = ? WHERE id = ?", (json_data, item_id))
+    conn.commit()
+    conn.close()
+    return {**auto.dict(), "id": item_id}
+
+@app.delete("/api/autos/{item_id}")
+def delete_auto(item_id: int):
+    # Opcional: Aquí podrías agregar lógica para borrar también las fotos del disco si quisieras
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("DELETE FROM vehiculos WHERE id = ?", (item_id,))
+    conn.commit()
+    conn.close()
+    return {"message": "Eliminado"}
+
+# 2. CONFIGURACIÓN (Marcas, Colores, Usuarios)
+@app.get("/api/brands")
+def get_brands():
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute("SELECT * FROM brands").fetchall()
+    conn.close()
+    return [{"id": r["id"], "name": r["name"]} for r in rows]
+
+@app.post("/api/brands")
+def create_brand(brand: Brand):
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        conn.execute("INSERT INTO brands (name) VALUES (?)", (brand.name,))
+        conn.commit()
+    except: pass
+    conn.close()
+    return {"message": "OK"}
+
+@app.delete("/api/brands/{id}")
+def delete_brand(id: int):
+    conn = sqlite3.connect(DB_NAME)
+    conn.execute("DELETE FROM brands WHERE id=?", (id,))
+    conn.commit()
+    conn.close()
+    return {"message": "Deleted"}
+
+@app.get("/api/colors")
+def get_colors():
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute("SELECT * FROM colors").fetchall()
+    conn.close()
+    return [{"id": r["id"], "name": r["name"], "hex": r["hex"]} for r in rows]
+
+@app.post("/api/colors")
+def create_color(color: Color):
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        conn.execute("INSERT INTO colors (name, hex) VALUES (?, ?)", (color.name, color.hex))
+        conn.commit()
+    except: pass
+    conn.close()
+    return {"message": "OK"}
+
+@app.delete("/api/colors/{id}")
+def delete_color(id: int):
+    conn = sqlite3.connect(DB_NAME)
+    conn.execute("DELETE FROM colors WHERE id=?", (id,))
+    conn.commit()
+    conn.close()
+    return {"message": "Deleted"}
+
+@app.get("/api/users")
+def get_users():
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute("SELECT id, username, role FROM users").fetchall()
+    conn.close()
+    return [{"id": r["id"], "username": r["username"], "role": r["role"]} for r in rows]
+
+@app.post("/api/users")
+def create_user(user: User):
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        conn.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (user.username, user.password, user.role))
+        conn.commit()
+    except: pass
+    conn.close()
+    return {"message": "OK"}
+
+@app.delete("/api/users/{id}")
+def delete_user(id: int):
+    conn = sqlite3.connect(DB_NAME)
+    conn.execute("DELETE FROM users WHERE id=?", (id,))
+    conn.commit()
+    conn.close()
+    return {"message": "Deleted"}
+
+@app.post("/api/login")
+def login(creds: LoginRequest):
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (creds.username, creds.password))
+    user = c.fetchone()
+    conn.close()
+    if user:
+        return {"status": "ok", "role": user["role"]}
+    else:
+        raise HTTPException(status_code=401, detail="Error")

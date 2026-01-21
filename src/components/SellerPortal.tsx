@@ -6,7 +6,7 @@ import {
   Zap, BarChart3, Clock, ShieldCheck, ChevronRight, ChevronLeft, ArrowUpRight,
   ArrowDownRight, Bell, History, Target, Percent, Eye, Users, Award, Lock,
   Activity, Package, AlertTriangle, LineChart, ImagePlus, Settings, CheckCircle, X,
-  Armchair, TrendingUp, PieChart as PieIcon, BarChart2, Menu // <--- IMPORTANTE: 'Menu' agregado
+  Armchair, TrendingUp, PieChart as PieIcon, BarChart2, Menu, Loader2 // <--- IMPORTANTE: 'Menu' agregado
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -748,6 +748,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({ stock, onEdit, onDelete }
 const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) => {
   const [brandOptions, setBrandOptions] = useState<string[]>(CAR_BRANDS);
   const [colorOptions, setColorOptions] = useState<string[]>(CAR_COLORS);
+  // Estado para saber si se está subiendo una imagen
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -781,54 +783,44 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
 
   // Manejo de Imágenes
   // --- FUNCIÓN DE CARGA OPTIMIZADA ---
+  // --- FUNCIÓN DE CARGA AL VPS ---
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Utilidad interna para comprimir
-    const compressFile = (file: File): Promise<string> => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-          const img = new Image();
-          img.src = event.target?.result as string;
-          img.onload = () => {
-            // Configuración de compresión
-            const MAX_WIDTH = 1280; // Ancho máximo seguro para web
-            let width = img.width;
-            let height = img.height;
+    // Validación vital: Marca y Modelo deben existir para crear la carpeta
+    if (!formData.marca || !formData.modelo) {
+        alert("⚠️ ATENCIÓN: Por favor escribe la MARCA y el MODELO antes de subir fotos.\nEl sistema necesita estos datos para crear la carpeta correcta en el servidor.");
+        return;
+    }
 
-            if (width > MAX_WIDTH) {
-              height = Math.round((height * MAX_WIDTH) / width);
-              width = MAX_WIDTH;
-            }
+    setIsUploading(true); // Activamos el spinner
 
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            
-            if (ctx) {
-              ctx.drawImage(img, 0, 0, width, height);
-              // Exportar a WebP calidad 70% (reduce tamaño drásticamente)
-              resolve(canvas.toDataURL('image/webp', 0.7)); 
-            } else {
-              resolve(img.src); // Fallback si falla el canvas
-            }
-          };
-        };
-      });
-    };
+    try {
+        const uploadedUrls: string[] = [];
+        
+        // Subimos archivo por archivo
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            // Llamamos al servicio que creamos en api.ts
+            const url = await carService.uploadImage(file, formData.marca, formData.modelo);
+            uploadedUrls.push(url);
+        }
 
-    // Procesar todas las imágenes seleccionadas
-    const newImages = await Promise.all(Array.from(files).map(compressFile));
+        // Guardamos las URLs que nos devolvió el servidor (https://lionscars.cl/uploads/...)
+        setFormData(prev => ({
+            ...prev,
+            imagen: (!prev.imagenes || prev.imagenes.length === 0) ? uploadedUrls[0] : prev.imagen,
+            imagenes: [...(prev.imagenes || []), ...uploadedUrls]
+        }));
 
-    setFormData(prev => ({
-      ...prev,
-      imagen: (!prev.imagenes || prev.imagenes.length === 0) ? newImages[0] : prev.imagen,
-      imagenes: [...(prev.imagenes || []), ...newImages]
-    }));
+    } catch (error) {
+        console.error("Error subiendo imágenes", error);
+        alert("Hubo un error al subir las imágenes. Revisa que el backend esté corriendo.");
+    } finally {
+        setIsUploading(false); // Desactivamos el spinner
+        e.target.value = ''; // Limpiamos el input por si quieres subir la misma foto de nuevo
+    }
   };
 
   const removeImage = (index: number) => {
@@ -996,20 +988,26 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
         <FormSection title="Galería & Puntos" icon={ImageIcon} color="text-purple-500">
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
-              <label className="cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#E8B923] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group">
+              {/* Botón Fotos Exterior */}
+              <label className={`cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#E8B923] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
                 <div className="p-3 bg-white/5 rounded-full group-hover:bg-[#E8B923]/20 transition-colors">
-                  <Car size={24} className="text-white group-hover:text-[#E8B923]" />
+                  {isUploading ? <Loader2 size={24} className="text-[#E8B923] animate-spin" /> : <Car size={24} className="text-white group-hover:text-[#E8B923]" />}
                 </div>
-                <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider text-center">Fotos Exterior</span>
-                <input type="file" multiple className="hidden" onChange={handleImageUpload} />
+                <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider text-center">
+                    {isUploading ? 'Subiendo...' : 'Fotos Exterior'}
+                </span>
+                <input type="file" multiple className="hidden" onChange={handleImageUpload} disabled={isUploading} />
               </label>
 
-              <label className="cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#E8B923] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group">
+              {/* Botón Fotos Interior */}
+              <label className={`cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#E8B923] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
                 <div className="p-3 bg-white/5 rounded-full group-hover:bg-[#E8B923]/20 transition-colors">
-                  <Armchair size={24} className="text-white group-hover:text-[#E8B923]" />
+                  {isUploading ? <Loader2 size={24} className="text-[#E8B923] animate-spin" /> : <Armchair size={24} className="text-white group-hover:text-[#E8B923]" />}
                 </div>
-                <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider text-center">Fotos Interior</span>
-                <input type="file" multiple className="hidden" onChange={handleImageUpload} />
+                <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider text-center">
+                    {isUploading ? 'Subiendo...' : 'Fotos Interior'}
+                </span>
+                <input type="file" multiple className="hidden" onChange={handleImageUpload} disabled={isUploading} />
               </label>
             </div>
 
@@ -1061,8 +1059,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
           </div>
         </FormSection>
 
-        <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} type="submit" className="w-full bg-[#E8B923] text-black font-black py-5 rounded-[2rem] shadow-xl hover:shadow-[#E8B923]/20 transition-all">
-          {car ? 'GUARDAR CAMBIOS' : 'PUBLICAR UNIDAD'}
+        <motion.button 
+          whileHover={{ scale: 1.01 }} 
+          whileTap={{ scale: 0.99 }} 
+          type="submit" 
+          disabled={isUploading} 
+          className={`w-full font-black py-5 rounded-[2rem] shadow-xl hover:shadow-[#E8B923]/20 transition-all ${isUploading ? 'bg-neutral-800 text-gray-500 cursor-not-allowed' : 'bg-[#E8B923] text-black'}`}
+        >
+          {isUploading ? 'ESPERA, SUBIENDO IMÁGENES...' : (car ? 'GUARDAR CAMBIOS' : 'PUBLICAR UNIDAD')}
         </motion.button>
       </form>
     </motion.div>

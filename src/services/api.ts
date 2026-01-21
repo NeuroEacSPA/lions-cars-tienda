@@ -20,7 +20,7 @@ export interface Vehiculo {
   duenos: number;
   traccion?: string;
   transmision: string;
-  cilindrada?: string; // NUEVO
+  cilindrada?: string;
   combustible: string;
   carroceria: string;
   puertas: number;
@@ -53,12 +53,45 @@ export interface Brand { id: number; name: string; }
 export interface Color { id: number; name: string; hex?: string; }
 export interface User { id: number; username: string; password?: string; role: string; }
 
-const API_URL = "/api";
+// --- CONFIGURACIÓN DE LA URL (Automática) ---
+// Si 'npm run build' (Producción/VPS) -> Usa https://lionscars.cl/api
+// Si 'npm run dev' (Tu PC) -> Usa http://localhost:8000/api
+const API_URL = import.meta.env.PROD 
+  ? "https://lionscars.cl/api" 
+  : "http://localhost:8000/api";
 
 export const carService = {
+  // --- NUEVA FUNCIÓN: SUBIR IMAGEN ---
+  // Esta función envía el archivo físico al backend y devuelve la URL pública
+  uploadImage: async (file: File, marca: string, modelo: string): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('marca', marca);
+    formData.append('modelo', modelo);
+
+    // Nota: No poner 'Content-Type': 'application/json' aquí. 
+    // fetch lo maneja solo cuando es FormData.
+    const r = await fetch(`${API_URL}/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!r.ok) {
+        throw new Error("Error al subir la imagen al servidor");
+    }
+
+    const data = await r.json();
+    return data.url; // Retorna ej: "https://lionscars.cl/uploads/toyota_yaris/foto.jpg"
+  },
+
+  // --- AUTOS ---
   // --- AUTOS ---
   getAll: async (): Promise<Vehiculo[]> => {
-    const r = await fetch(`${API_URL}/autos`); return r.json();
+    const r = await fetch(`${API_URL}/autos`);
+    const data = await r.json();
+    
+    // AQUÍ ORDENAMOS: b.id - a.id pone el ID más alto (el más nuevo) primero
+    return data.sort((a: Vehiculo, b: Vehiculo) => b.id - a.id);
   },
   create: async (car: Omit<Vehiculo, 'id'>): Promise<Vehiculo> => {
     const r = await fetch(`${API_URL}/autos`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(car) }); return r.json();
