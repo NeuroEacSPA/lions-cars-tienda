@@ -1054,7 +1054,7 @@ useEffect(() => {
               className="absolute inset-0"
             >
               <img
-                src="/fondo.png"
+                src="/fondo2.png"
                 alt="Lions Cars"
                 className="w-full h-full object-cover scale-110"
               />
