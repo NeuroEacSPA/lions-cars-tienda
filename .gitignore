@@ -7,12 +7,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
 dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# Editor directories
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,3 +23,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# --- NEURO CARS IGNORES ---
+# Ignorar carpeta de subidas (fotos de autos)
+uploads/
+
+# Ignorar base de datos SQLite (¡CRITICO!)
+*.db
+*.sqlite3
+backend/lions_cars.db
+
+# Ignorar cache de Python
+__pycache__/
+backend/__pycache__/
