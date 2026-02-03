@@ -298,3 +298,83 @@ def login(creds: LoginRequest):
         return {"status": "ok", "role": user["role"]}
     else:
         raise HTTPException(status_code=401, detail="Error")
+
+# 3. MÉTRICAS - Incrementar vistas
+@app.post("/api/autos/{item_id}/view")
+def increment_view(item_id: int):
+    """Incrementa el contador de vistas cuando alguien ve un vehículo"""
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    # Obtener el vehículo actual
+    c.execute("SELECT * FROM vehiculos WHERE id = ?", (item_id,))
+    row = c.fetchone()
+    
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
+    
+    # Parsear y actualizar vistas
+    car_data = json.loads(row["data"])
+    car_data["vistas"] = car_data.get("vistas", 0) + 1
+    
+    # Guardar
+    c.execute("UPDATE vehiculos SET data = ? WHERE id = ?", (json.dumps(car_data), item_id))
+    conn.commit()
+    conn.close()
+    
+    return {"vistas": car_data["vistas"]}
+
+# 4. MÉTRICAS - Incrementar interesados
+@app.post("/api/autos/{item_id}/interested")
+def increment_interested(item_id: int):
+    """Incrementa el contador de interesados cuando alguien hace clic en contactar"""
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    # Obtener el vehículo actual
+    c.execute("SELECT * FROM vehiculos WHERE id = ?", (item_id,))
+    row = c.fetchone()
+    
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
+    
+    # Parsear y actualizar interesados
+    car_data = json.loads(row["data"])
+    car_data["interesados"] = car_data.get("interesados", 0) + 1
+    
+    # Guardar
+    c.execute("UPDATE vehiculos SET data = ? WHERE id = ?", (json.dumps(car_data), item_id))
+    conn.commit()
+    conn.close()
+    
+    return {"interesados": car_data["interesados"]}
+
+# 5. MÉTRICAS - Resetear todas las métricas
+@app.post("/api/autos/reset-metrics")
+def reset_all_metrics():
+    """Resetea vistas e interesados de todos los vehículos a 0"""
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    # Obtener todos los vehículos
+    c.execute("SELECT * FROM vehiculos")
+    rows = c.fetchall()
+    
+    updated_count = 0
+    for row in rows:
+        car_data = json.loads(row["data"])
+        car_data["vistas"] = 0
+        car_data["interesados"] = 0
+        
+        c.execute("UPDATE vehiculos SET data = ? WHERE id = ?", (json.dumps(car_data), row["id"]))
+        updated_count += 1
+    
+    conn.commit()
+    conn.close()
+    
+    return {"message": f"Métricas reseteadas en {updated_count} vehículos"}

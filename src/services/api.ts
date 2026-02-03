@@ -119,5 +119,18 @@ export const carService = {
   login: async (username: string, password: string): Promise<boolean> => {
       const r = await fetch(`${API_URL}/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username, password}) });
       return r.ok;
+  },
+
+  // --- MÉTRICAS ---
+  incrementView: async (id: number): Promise<void> => {
+    await fetch(`${API_URL}/autos/${id}/view`, { method: 'POST' });
+  },
+  
+  incrementInterested: async (id: number): Promise<void> => {
+    await fetch(`${API_URL}/autos/${id}/interested`, { method: 'POST' });
+  },
+
+  resetMetrics: async (): Promise<void> => {
+    await fetch(`${API_URL}/autos/reset-metrics`, { method: 'POST' });
   }
 };

@@ -275,8 +275,7 @@ const DashboardOverview: React.FC<DashboardViewProps> = ({ stats, stock }) => {
     interface BrandItem { name: string; value: number; }
     return Object.entries(counts)
       .map(([name, value]) => ({ name, value }))
-      .sort((a: BrandItem, b: BrandItem) => b.value - a.value)
-      .slice(0, 5);
+      .sort((a: BrandItem, b: BrandItem) => b.value - a.value);
   }, [stock]);
 
   const agingData = useMemo(() => {
@@ -455,29 +454,83 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
         <div className={`${GLASS_BG} rounded-[2.5rem] p-4`}>
           <h3 className="text-lg font-black uppercase mb-6 text-[#E8B923]">Top Performers (Vistas/Leads)</h3>
           <div className="space-y-4">
-            {stock.sort((a: Vehiculo, b: Vehiculo) => ((b.interesados || 0) / (b.vistas || 1)) - ((a.interesados || 0) / (a.vistas || 1))).slice(0, 5).map((car) => (
-              <div key={car.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#E8B923]/30 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#E8B923]/10 flex items-center justify-center flex-shrink-0"><Award size={16} className="text-[#E8B923]" /></div>
-                  <div className="truncate"><p className="font-bold text-sm text-white truncate">{car.marca} {car.modelo}</p><p className="text-xs text-neutral-500">{(((car.interesados || 0) / (car.vistas || 1)) * 100).toFixed(1)}% conversión</p></div>
+            {(() => {
+              const topPerformers = stock
+                .filter((c: Vehiculo) => (c.vistas || 0) > 0)
+                .sort((a: Vehiculo, b: Vehiculo) => {
+                  const convA = (a.interesados || 0) / (a.vistas || 1);
+                  const convB = (b.interesados || 0) / (b.vistas || 1);
+                  if (convB !== convA) return convB - convA;
+                  return (b.vistas || 0) - (a.vistas || 0);
+                })
+                .slice(0, 5);
+
+              if (topPerformers.length === 0) {
+                return (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Eye size={48} className="text-neutral-700 mb-4" />
+                    <p className="text-sm font-bold text-neutral-500 mb-2">Sin datos de rendimiento</p>
+                    <p className="text-xs text-neutral-600 max-w-xs">
+                      Los vehículos comenzarán a aparecer aquí cuando reciban vistas e interesados desde el catálogo público.
+                    </p>
+                  </div>
+                );
+              }
+
+              return topPerformers.map((car) => (
+                <div key={car.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#E8B923]/30 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#E8B923]/10 flex items-center justify-center flex-shrink-0"><Award size={16} className="text-[#E8B923]" /></div>
+                    <div className="truncate">
+                      <p className="font-bold text-sm text-white truncate">{car.marca} {car.modelo}</p>
+                      <p className="text-xs text-neutral-500">
+                        {car.vistas > 0 ? `${(((car.interesados || 0) / car.vistas) * 100).toFixed(1)}% conversión` : 'Sin vistas'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-mono font-bold text-green-500">{car.interesados || 0} leads</p>
+                    <p className="text-xs text-neutral-500">{car.vistas || 0} vistas</p>
+                  </div>
                 </div>
-                <div className="text-right flex-shrink-0"><p className="text-sm font-mono font-bold text-green-500">{car.interesados || 0} leads</p><p className="text-xs text-neutral-500">{car.vistas || 0} vistas</p></div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         </div>
         <div className={`${GLASS_BG} rounded-[2.5rem] p-4`}>
           <h3 className="text-lg font-black uppercase mb-6 text-red-500 flex items-center gap-2"><AlertTriangle size={18} className="text-red-500" /> Necesitan Atención (+20 días)</h3>
           <div className="space-y-4">
-            {stock.filter((c: Vehiculo) => c.estado === 'Disponible' && (c.diasStock || 0) > 20).slice(0, 5).map((car) => (
-              <div key={car.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-red-500/30 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0"><AlertTriangle size={16} className="text-red-500" /></div>
-                  <div className="truncate"><p className="font-bold text-sm text-white truncate">{car.marca} {car.modelo}</p><p className="text-xs text-neutral-500">{car.diasStock || 0} días en stock</p></div>
+            {(() => {
+              const needsAttention = stock.filter((c: Vehiculo) => c.estado === 'Disponible' && (c.diasStock || 0) > 20).slice(0, 5);
+              
+              if (needsAttention.length === 0) {
+                return (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <CheckCircle size={48} className="text-green-600 mb-4" />
+                    <p className="text-sm font-bold text-green-500 mb-2">¡Excelente rotación!</p>
+                    <p className="text-xs text-neutral-600 max-w-xs">
+                      No hay vehículos con más de 20 días en stock. Tu inventario está rotando eficientemente.
+                    </p>
+                  </div>
+                );
+              }
+
+              return needsAttention.map((car) => (
+                <div key={car.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-red-500/30 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0"><AlertTriangle size={16} className="text-red-500" /></div>
+                    <div className="truncate">
+                      <p className="font-bold text-sm text-white truncate">{car.marca} {car.modelo}</p>
+                      <p className="text-xs text-neutral-500">{car.diasStock || 0} días en stock</p>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-mono font-bold text-white">{car.precio.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</p>
+                    <p className="text-xs text-[#E8B923]">Considerar descuento</p>
+                  </div>
                 </div>
-                <div className="text-right flex-shrink-0"><p className="text-sm font-mono font-bold text-white">{car.precio.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</p><p className="text-xs text-[#E8B923]">Considerar descuento</p></div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         </div>
       </div>
@@ -501,6 +554,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
 
   // 1. NUEVO ESTADO PARA EL BOTÓN DE OPTIMIZACIÓN
   const [isOptimizing, setIsOptimizing] = useState(false); // <--- NUEVO
+  const [isSimulating, setIsSimulating] = useState(false); // <--- NUEVO PARA SIMULACIÓN
+  const [isResetting, setIsResetting] = useState(false); // <--- NUEVO PARA RESETEO
 
   useEffect(() => {
     const loadData = async () => {
@@ -596,6 +651,71 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
   };
   // <--- NUEVA LÓGICA DE OPTIMIZACIÓN MASIVA (FIN)
 
+  // 3. NUEVA FUNCIÓN: SIMULAR DATOS DE MÉTRICAS (INICIO) --->
+  const handleSimulateMetrics = async () => {
+    if (!window.confirm("🎲 SIMULACIÓN DE DATOS\n\nEsto agregará vistas e interesados aleatorios a todos los vehículos disponibles.\n\n¿Continuar?")) return;
+    
+    setIsSimulating(true);
+    showToast("Simulando métricas...", "info");
+
+    try {
+      const allCars = await carService.getAll();
+      let updatedCount = 0;
+
+      for (const car of allCars) {
+        if (car.estado === 'Disponible') {
+          // Generar números aleatorios realistas
+          const randomViews = Math.floor(Math.random() * 150) + 10; // Entre 10 y 160 vistas
+          const randomInterested = Math.floor(Math.random() * (randomViews * 0.3)); // Hasta 30% de conversión
+          
+          // Actualizar el vehículo
+          await carService.update({
+            ...car,
+            vistas: (car.vistas || 0) + randomViews,
+            interesados: (car.interesados || 0) + randomInterested
+          });
+          
+          updatedCount++;
+        }
+      }
+
+      showToast(`✅ ${updatedCount} vehículos actualizados. Recargando...`, "success");
+      
+      // Recargar la página después de 1 segundo
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error(error);
+      showToast("Error durante la simulación", "error");
+      setIsSimulating(false);
+    }
+  };
+  // <--- NUEVA FUNCIÓN: SIMULAR DATOS DE MÉTRICAS (FIN)
+
+  // 4. NUEVA FUNCIÓN: RESETEAR MÉTRICAS (INICIO) --->
+  const handleResetMetrics = async () => {
+    if (!window.confirm("⚠️ RESETEAR MÉTRICAS\n\nEsto pondrá en CERO las vistas e interesados de TODOS los vehículos.\n\n¿Estás seguro?")) return;
+    
+    setIsResetting(true);
+    showToast("Reseteando métricas...", "info");
+
+    try {
+      await carService.resetMetrics();
+      showToast("✅ Todas las métricas fueron reseteadas a 0. Recargando...", "success");
+      
+      // Recargar la página después de 1 segundo para que el usuario vea el mensaje
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error(error);
+      showToast("Error al resetear métricas", "error");
+      setIsResetting(false);
+    }
+  };
+  // <--- NUEVA FUNCIÓN: RESETEAR MÉTRICAS (FIN)
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8 p-4">
       <h2 className="text-2xl md:text-4xl font-black italic tracking-tighter text-white">CONFIGURACIÓN <span className="text-[#E8B923]">SISTEMA</span></h2>
@@ -650,9 +770,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
             <AlertTriangle size={16} /> MANTENIMIENTO
           </h3>
           <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-            Si el sistema carga lento, usa esta herramienta para comprimir todas las imágenes antiguas de la base de datos.
+            Herramientas de optimización y pruebas del sistema.
           </p>
-          <div className="mt-auto">
+          <div className="space-y-3">
              <button 
               onClick={handleEmergencyOptimize} 
               disabled={isOptimizing}
@@ -669,6 +789,44 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
                   </>
               ) : (
                   'OPTIMIZAR IMÁGENES DB'
+              )}
+            </button>
+
+            <button 
+              onClick={handleSimulateMetrics} 
+              disabled={isSimulating}
+              className={`w-full py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
+                  isSimulating 
+                  ? 'bg-neutral-800 text-gray-500 cursor-not-allowed' 
+                  : 'bg-blue-500/10 text-blue-500 border border-blue-500/50 hover:bg-blue-500 hover:text-white'
+              }`}
+            >
+              {isSimulating ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    SIMULANDO...
+                  </>
+              ) : (
+                  '🎲 SIMULAR MÉTRICAS'
+              )}
+            </button>
+
+            <button 
+              onClick={handleResetMetrics} 
+              disabled={isResetting}
+              className={`w-full py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
+                  isResetting 
+                  ? 'bg-neutral-800 text-gray-500 cursor-not-allowed' 
+                  : 'bg-orange-500/10 text-orange-500 border border-orange-500/50 hover:bg-orange-500 hover:text-white'
+              }`}
+            >
+              {isResetting ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    RESETEANDO...
+                  </>
+              ) : (
+                  '🔄 RESETEAR MÉTRICAS'
               )}
             </button>
           </div>

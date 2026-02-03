@@ -5,7 +5,7 @@ import {
   Search, X, MessageCircle, ChevronRight,
   Filter, Heart, Share2, LayoutDashboard, ArrowLeft,
    User, FileCheck, Settings, Zap, Activity, ChevronLeft,
-  QrCode, Smartphone, Calculator, Percent, CreditCard, Banknote, RefreshCw,FileDown
+  QrCode, Smartphone, Calculator, Percent, CreditCard, Banknote, RefreshCw, FileDown, Eye
 } from 'lucide-react';
 import { useParams, useNavigate, } from 'react-router-dom';
 import { motion, AnimatePresence, useScroll, useTransform, type Variants } from 'framer-motion';
@@ -734,6 +734,23 @@ const CarModal = ({
               </PDFDownloadLink>
             </div>
 
+            {/* Métricas de Interés */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-[#E8B923]/10 to-transparent border border-[#E8B923]/20 rounded-xl">
+              <h4 className="text-[10px] text-[#E8B923] font-bold uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                <Eye size={12} /> Métricas de Interés
+              </h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-black/30 p-3 rounded-lg border border-white/5">
+                  <p className="text-[9px] text-gray-500 uppercase font-bold mb-1">Vistas</p>
+                  <p className="text-xl font-black text-white">{car.vistas || 0}</p>
+                </div>
+                <div className="bg-black/30 p-3 rounded-lg border border-[#E8B923]/20">
+                  <p className="text-[9px] text-gray-500 uppercase font-bold mb-1">Interesados</p>
+                  <p className="text-xl font-black text-[#E8B923]">{car.interesados || 0}</p>
+                </div>
+              </div>
+            </div>
+
             {/* Observaciones */}
             <div className="mb-4">
               <h4 className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-2">
@@ -889,6 +906,8 @@ useEffect(() => {
     const carFound = stock.find(v => v.id === Number(id));
     if (carFound) {
       setSelectedCar(carFound);
+      // Incrementar vistas automáticamente cuando se abre el modal
+      carService.incrementView(carFound.id).catch(err => console.error('Error incrementando vistas:', err));
     } else {
       // Si no encuentra el carro, redirige al catálogo
       navigate('/');
@@ -1001,6 +1020,9 @@ useEffect(() => {
   };
 
   const handleContact = (car: Vehiculo) => {
+    // Incrementar contador de interesados
+    carService.incrementInterested(car.id).catch(err => console.error('Error incrementando interesados:', err));
+    
     const phone = "56958016208";
     const text = `Hola, me interesa el ${car.marca} ${car.modelo} ID:${car.id}`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
