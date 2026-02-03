@@ -36,3 +36,6 @@ backend/lions_cars.db
 # Ignorar cache de Python
 __pycache__/
 backend/__pycache__/
+
+# Archivos compilados de python sueltos
+*.pyc
