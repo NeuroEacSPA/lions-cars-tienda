@@ -4,9 +4,9 @@ import {
   Car, PlusCircle, LogOut, Wallet, Search, ArrowLeft,
   Image as ImageIcon, Edit3, DollarSign, Trash2,
   Zap, BarChart3, Clock, ShieldCheck, ChevronRight, ChevronLeft, ArrowUpRight,
-  ArrowDownRight, Bell, History, Target, Percent, Eye, Users, Award, Lock,
-  Activity, Package, AlertTriangle, LineChart, ImagePlus, Settings, CheckCircle, X,
-  Armchair, TrendingUp, PieChart as PieIcon, BarChart2, Menu, Loader2 // <--- IMPORTANTE: 'Menu' agregado
+  ArrowDownRight, Bell, History, Target, Percent, Eye, Users, Award,
+  Activity, Package, AlertTriangle, LineChart, Settings, CheckCircle, X,
+  Armchair, TrendingUp, PieChart as PieIcon, BarChart2, Menu, Loader2, Palette // <--- Palette agregado
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -21,7 +21,7 @@ import { carService } from '../services/api';
 import type { Vehiculo, Hotspot, Brand, Color, User } from '../services/api';
 
 // --- ESTILOS ---
-const GOLD_MAIN = '#E8B923';
+const GOLD_MAIN = '#C9A84C';
 const GLASS_BG = "bg-[#080808]/90 backdrop-blur-xl border border-white/5";
 
 // ===== LISTAS MAESTRAS (FALLBACK) =====
@@ -47,7 +47,6 @@ interface AnalyticsViewProps extends ViewProps { stats: Stats; }
 interface InventoryViewProps extends ViewProps { onEdit: (car: Vehiculo) => void; onDelete: (id: number) => void; }
 interface VehicleFormProps { car: Vehiculo | null; onCancel: () => void; onSubmit: (data: Vehiculo) => void; }
 interface SettingsViewProps { showToast: (msg: string, type: 'success' | 'error' | 'info') => void; }
-interface LoginScreenProps { onLogin: () => void; onBack?: () => void; }
 
 interface SellerPortalProps {
   stock: Vehiculo[];
@@ -55,6 +54,8 @@ interface SellerPortalProps {
   onAdd: (car: Vehiculo) => void;
   onUpdate: (car: Vehiculo) => void;
   onDelete: (id: number) => void;
+  userRole?: string;
+  userId?: number;
 }
 
 // Interfaces UI
@@ -86,6 +87,8 @@ interface DashboardProps {
   onDelete: (id: number) => void;
   onBack?: () => void;
   onLogout: () => void;
+  userRole?: string;
+  userId?: number;
 }
 
 // ===== COMPONENTES UI GLOBALES =====
@@ -111,8 +114,8 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     const prefix = data.name === 'ventas' || data.name === 'monto' || data.name === 'Precio' ? '$' : '';
 
     return (
-      <div className="bg-black/90 border border-[#E8B923]/30 p-3 rounded-xl backdrop-blur-md shadow-2xl">
-        <p className="text-[#E8B923] text-xs font-bold mb-1">{label || data.name}</p>
+      <div className="bg-black/90 border border-[#C9A84C]/30 p-3 rounded-xl backdrop-blur-md shadow-2xl">
+        <p className="text-[#C9A84C] text-xs font-bold mb-1">{label || data.name}</p>
         <p className="text-white text-xs font-mono">
           {prefix}{value}
         </p>
@@ -125,8 +128,8 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 const KpiCard: React.FC<KpiCardProps> = ({ label, value, icon: Icon, trend, sub, color, subValue }) => (
   <motion.div whileHover={{ scale: 1.05, y: -5 }} className="bg-[#080808] border border-white/5 p-4 rounded-[2.5rem] relative overflow-hidden group shadow-inner cursor-pointer w-full">
     <div className="flex justify-between items-start mb-6 relative z-10">
-      <div className={`p-3.5 bg-neutral-900 rounded-2xl border border-white/10 group-hover:border-[#E8B923]/40 transition-colors`}>
-        <Icon size={22} className="text-[#E8B923]" />
+      <div className={`p-3.5 bg-neutral-900 rounded-2xl border border-white/10 group-hover:border-[#C9A84C]/40 transition-colors`}>
+        <Icon size={22} className="text-[#C9A84C]" />
       </div>
       {trend && <span className="text-[10px] font-black px-2.5 py-1.5 rounded-xl bg-green-500/10 text-green-400 border border-green-500/20 flex items-center gap-1 uppercase tracking-tighter"><ArrowUpRight size={10} /> {trend}</span>}
     </div>
@@ -185,7 +188,7 @@ const FormSection: React.FC<FormSectionProps> = ({ title, icon: Icon, color, chi
 const Field: React.FC<FieldProps> = ({ label, value, onChange, type = "text", readOnly = false }) => (
   <div className="space-y-2 flex-1 w-full">
     <label className="text-[10px] font-black text-neutral-600 uppercase tracking-widest ml-1">{label}</label>
-    <input type={type} readOnly={readOnly} className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-[#E8B923]/50 focus:bg-white/[0.02] transition-all text-white placeholder:text-neutral-800 hover:border-white/20 disabled:opacity-50" value={value || ''} onChange={(e) => onChange(e.target.value)} />
+    <input type={type} readOnly={readOnly} className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-[#C9A84C]/50 focus:bg-white/[0.02] transition-all text-white placeholder:text-neutral-800 hover:border-white/20 disabled:opacity-50" value={value || ''} onChange={(e) => onChange(e.target.value)} />
   </div>
 );
 
@@ -193,7 +196,7 @@ const SelectField: React.FC<SelectFieldProps> = ({ label, value, options, onChan
   <div className="space-y-2 flex-1 w-full">
     <label className="text-[10px] font-black text-neutral-600 uppercase tracking-widest ml-1">{label}</label>
     <div className="relative">
-      <select className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-[#E8B923]/50 focus:bg-white/[0.02] transition-all appearance-none cursor-pointer text-white hover:border-white/20" value={value} onChange={(e) => onChange(e.target.value)}>
+      <select className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-[#C9A84C]/50 focus:bg-white/[0.02] transition-all appearance-none cursor-pointer text-white hover:border-white/20" value={value} onChange={(e) => onChange(e.target.value)}>
         {options.map((opt) => <option key={opt} value={opt} className="bg-black">{opt}</option>)}
       </select>
       <ChevronRight size={16} className="absolute right-5 top-1/2 -translate-y-1/2 rotate-90 text-neutral-600 pointer-events-none" />
@@ -204,7 +207,7 @@ const SelectField: React.FC<SelectFieldProps> = ({ label, value, options, onChan
 const TextAreaField: React.FC<TextAreaFieldProps> = ({ label, value, onChange, rows = 3 }) => (
   <div className="space-y-2 flex-1 w-full">
     <label className="text-[10px] font-black text-neutral-600 uppercase tracking-widest ml-1">{label}</label>
-    <textarea rows={rows} className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-[#E8B923]/50 focus:bg-white/[0.02] transition-all text-white placeholder:text-neutral-800 hover:border-white/20 resize-none" value={value || ''} onChange={(e) => onChange(e.target.value)} />
+    <textarea rows={rows} className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-[#C9A84C]/50 focus:bg-white/[0.02] transition-all text-white placeholder:text-neutral-800 hover:border-white/20 resize-none" value={value || ''} onChange={(e) => onChange(e.target.value)} />
   </div>
 );
 
@@ -230,7 +233,7 @@ const AutocompleteField: React.FC<AutocompleteFieldProps> = ({ label, value, opt
       <div className="relative">
         <input
           type="text"
-          className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-[#E8B923]/50 focus:bg-white/[0.02] transition-all text-white placeholder:text-neutral-800 hover:border-white/20"
+          className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-[#C9A84C]/50 focus:bg-white/[0.02] transition-all text-white placeholder:text-neutral-800 hover:border-white/20"
           placeholder={placeholder}
           value={inputValue}
           onChange={(e) => { onChange(e.target.value); setIsOpen(true); }}
@@ -244,7 +247,7 @@ const AutocompleteField: React.FC<AutocompleteFieldProps> = ({ label, value, opt
               {filteredOptions.map((opt) => (
                 <li key={opt} className="px-5 py-3 text-sm text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer transition-colors flex items-center justify-between" onClick={() => { onChange(opt); setIsOpen(false); }}>
                   <span>{opt}</span>
-                  {inputValue === opt && <div className="w-1.5 h-1.5 rounded-full bg-[#E8B923]" />}
+                  {inputValue === opt && <div className="w-1.5 h-1.5 rounded-full bg-[#C9A84C]" />}
                 </li>
               ))}
             </motion.ul>
@@ -256,10 +259,10 @@ const AutocompleteField: React.FC<AutocompleteFieldProps> = ({ label, value, opt
 };
 
 const NavItem: React.FC<NavItemProps> = ({ active, icon: Icon, label, onClick, color = "text-neutral-500" }) => (
-  <motion.button onClick={onClick} whileHover={{ x: 5 }} whileTap={{ scale: 0.95 }} className={`w-full flex items-center justify-center md:justify-start gap-4 p-4 rounded-2xl transition-all group relative ${active ? 'bg-[#E8B923] text-black shadow-[0_8px_20px_rgba(232,185,35,0.2)]' : `hover:bg-white/5 ${color}`}`}>
+  <motion.button onClick={onClick} whileHover={{ x: 5 }} whileTap={{ scale: 0.95 }} className={`w-full flex items-center justify-center md:justify-start gap-4 p-4 rounded-2xl transition-all group relative ${active ? 'bg-[#C9A84C] text-black shadow-[0_8px_20px_rgba(232,185,35,0.2)]' : `hover:bg-white/5 ${color}`}`}>
     <Icon size={20} className={active ? 'text-black' : 'group-hover:text-white transition-colors'} strokeWidth={active ? 2.5 : 2} />
     <span className="md:hidden lg:block text-[13px] font-bold uppercase tracking-tight block">{label}</span>
-    {active && <motion.div layoutId="nav-pill" className="absolute left-[-1rem] w-2 h-8 bg-[#E8B923] rounded-r-full hidden md:block" />}
+    {active && <motion.div layoutId="nav-pill" className="absolute left-[-1rem] w-2 h-8 bg-[#C9A84C] rounded-r-full hidden md:block" />}
   </motion.button>
 );
 
@@ -286,13 +289,13 @@ const DashboardOverview: React.FC<DashboardViewProps> = ({ stats, stock }) => {
     });
     return [
       { name: '0-30 días', cantidad: fresh, fill: '#10b981' },
-      { name: '31-60 días', cantidad: mid, fill: '#E8B923' },
+      { name: '31-60 días', cantidad: mid, fill: '#C9A84C' },
       { name: '60+ días', cantidad: old, fill: '#ef4444' }
     ];
   }, [stock]);
 
-  const targetData = [{ name: 'Meta', value: 100, fill: '#333' }, { name: 'Logrado', value: 75, fill: '#E8B923' }];
-  const COLORS = ['#E8B923', '#FFF', '#3b82f6', '#10b981', '#6366f1'];
+  const targetData = [{ name: 'Meta', value: 100, fill: '#333' }, { name: 'Logrado', value: 75, fill: '#C9A84C' }];
+  const COLORS = ['#C9A84C', '#FFF', '#3b82f6', '#10b981', '#6366f1'];
   const trendData = [{ name: 'Ene', ventas: 24000000 }, { name: 'Feb', ventas: 13980000 }, { name: 'Mar', ventas: 48000000 }, { name: 'Abr', ventas: 39080000 }, { name: 'May', ventas: 48000000 }, { name: 'Jun', ventas: 38000000 }];
 
   return (
@@ -302,30 +305,30 @@ const DashboardOverview: React.FC<DashboardViewProps> = ({ stats, stock }) => {
           { label: "Valor Inventario", value: stats.totalValue.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', notation: 'compact' }), icon: Wallet, color: "text-white" },
           { label: "Unidades Activas", value: stats.available, icon: Car, color: "text-blue-500" },
           { label: "Vistas Totales", value: stats.totalViews, icon: Eye, color: "text-green-500" },
-          { label: "Comisión Est.", value: stats.totalComission.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', notation: 'compact' }), icon: Percent, color: "text-[#E8B923]" },
+          { label: "Comisión Est.", value: stats.totalComission.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', notation: 'compact' }), icon: Percent, color: "text-[#C9A84C]" },
         ].map((kpi, idx) => (<KpiCard key={idx} {...kpi} trend="+2.5%" sub="vs mes anterior" />))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={`${GLASS_BG} col-span-1 lg:col-span-2 rounded-3xl p-6 min-h-[300px] flex flex-col`}>
-          <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2"><Activity size={18} className="text-[#E8B923]" /> Tendencia de Ingresos</h3>
-          <div className="flex-1 w-full h-full min-h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
+          <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2"><Activity size={18} className="text-[#C9A84C]" /> Tendencia de Ingresos</h3>
+          <div className="w-full h-[250px]">
+            <ResponsiveContainer width="100%" height={250}>
               <AreaChart data={trendData}>
-                <defs><linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#E8B923" stopOpacity={0.3} /><stop offset="95%" stopColor="#E8B923" stopOpacity={0} /></linearGradient></defs>
+                <defs><linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#C9A84C" stopOpacity={0.3} /><stop offset="95%" stopColor="#C9A84C" stopOpacity={0} /></linearGradient></defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="name" stroke="#555" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis stroke="#555" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(value) => `$${value / 1000000}M`} />
-                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#E8B923', strokeWidth: 1 }} />
-                <Area type="monotone" dataKey="ventas" stroke="#E8B923" strokeWidth={3} fillOpacity={1} fill="url(#colorVentas)" />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#C9A84C', strokeWidth: 1 }} />
+                <Area type="monotone" dataKey="ventas" stroke="#C9A84C" strokeWidth={3} fillOpacity={1} fill="url(#colorVentas)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
         <div className={`${GLASS_BG} rounded-3xl p-6 flex flex-col relative overflow-hidden`}>
           <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2"><Target size={16} className="text-red-500" /> META MENSUAL</h3>
-          <div className="flex-1 min-h-[200px] relative flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[250px] relative flex items-center justify-center">
+            <ResponsiveContainer width="100%" height={250}>
               <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" barSize={20} data={targetData}>
                 <RadialBar background dataKey="value" cornerRadius={30} />
               </RadialBarChart>
@@ -338,8 +341,8 @@ const DashboardOverview: React.FC<DashboardViewProps> = ({ stats, stock }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className={`${GLASS_BG} rounded-3xl p-6 flex flex-col`}>
           <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><PieIcon size={16} className="text-blue-500" /> DISTRIBUCIÓN MARCAS</h3>
-          <div className="flex-1 min-h-[200px] relative">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[250px] relative">
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie data={brandData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
                   {brandData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
@@ -352,8 +355,8 @@ const DashboardOverview: React.FC<DashboardViewProps> = ({ stats, stock }) => {
         </div>
         <div className={`${GLASS_BG} rounded-3xl p-6 flex flex-col`}>
           <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><Clock size={16} className="text-orange-500" /> ANTIGÜEDAD STOCK</h3>
-          <div className="flex-1 min-h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={agingData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.05)" />
                 <XAxis type="number" hide />
@@ -400,15 +403,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className={`${GLASS_BG} rounded-[2.5rem] p-6 flex flex-col min-h-[400px]`}>
-          <h3 className="text-lg font-black uppercase mb-6 text-white flex items-center gap-2"><BarChart2 size={18} className="text-[#E8B923]" /> Valoración por Segmento</h3>
-          <div className="flex-1">
-            <ResponsiveContainer width="100%" height="100%">
+          <h3 className="text-lg font-black uppercase mb-6 text-white flex items-center gap-2"><BarChart2 size={18} className="text-[#C9A84C]" /> Valoración por Segmento</h3>
+          <div className="h-[350px]">
+            <ResponsiveContainer width="100%" height={350}>
               <BarChart data={bodyTypePriceData} layout="vertical" margin={{ left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.05)" />
                 <XAxis type="number" stroke="#555" tick={{ fontSize: 10 }} tickFormatter={(val) => `$${val / 1000000}M`} />
                 <YAxis dataKey="name" type="category" stroke="#fff" tick={{ fontSize: 11, fontWeight: 'bold' }} width={80} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-                <Bar dataKey="value" fill="#E8B923" radius={[0, 4, 4, 0]} barSize={25} />
+                <Bar dataKey="value" fill="#C9A84C" radius={[0, 4, 4, 0]} barSize={25} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -419,8 +422,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
             <h3 className="text-lg font-black uppercase text-white flex items-center gap-2"><TrendingUp size={18} className="text-blue-500" /> Matriz de Eficiencia</h3>
             <p className="text-[10px] text-neutral-500">Eje X: Precio | Eje Y: Días en Stock</p>
           </div>
-          <div className="flex-1">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[350px]">
+            <ResponsiveContainer width="100%" height={350}>
               <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis type="number" dataKey="x" name="Precio" unit="$" stroke="#555" tick={{ fontSize: 10 }} tickFormatter={(val) => `${val / 1000000}M`} />
@@ -452,7 +455,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className={`${GLASS_BG} rounded-[2.5rem] p-4`}>
-          <h3 className="text-lg font-black uppercase mb-6 text-[#E8B923]">Top Performers (Vistas/Leads)</h3>
+          <h3 className="text-lg font-black uppercase mb-6 text-[#C9A84C]">Top Performers (Vistas/Leads)</h3>
           <div className="space-y-4">
             {(() => {
               const topPerformers = stock
@@ -478,9 +481,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
               }
 
               return topPerformers.map((car) => (
-                <div key={car.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#E8B923]/30 transition-all">
+                <div key={car.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#C9A84C]/30 transition-all">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#E8B923]/10 flex items-center justify-center flex-shrink-0"><Award size={16} className="text-[#E8B923]" /></div>
+                    <div className="w-8 h-8 rounded-lg bg-[#C9A84C]/10 flex items-center justify-center flex-shrink-0"><Award size={16} className="text-[#C9A84C]" /></div>
                     <div className="truncate">
                       <p className="font-bold text-sm text-white truncate">{car.marca} {car.modelo}</p>
                       <p className="text-xs text-neutral-500">
@@ -526,7 +529,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-sm font-mono font-bold text-white">{car.precio.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</p>
-                    <p className="text-xs text-[#E8B923]">Considerar descuento</p>
+                    <p className="text-xs text-[#C9A84C]">Considerar descuento</p>
                   </div>
                 </div>
               ));
@@ -547,10 +550,26 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
   const [colors, setColors] = useState<Color[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   
-  // Estados para los formularios existentes
+  // Estados para formularios
   const [newBrand, setNewBrand] = useState('');
   const [newColor, setNewColor] = useState('');
-  const [newUser, setNewUser] = useState({ username: '', password: '', role: 'vendedor' });
+  
+  // Estados para el formulario de registro de usuario mejorado
+  const [showNewUserForm, setShowNewUserForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [newUser, setNewUser] = useState({ 
+    nombre: '',
+    email: '',
+    telefono: '',
+    username: '',
+    password: '', 
+    confirmPassword: '',
+    role: 'vendedor' 
+  });
+  const [userErrors, setUserErrors] = useState<Record<string, string>>({});
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
 
   // 1. NUEVO ESTADO PARA EL BOTÓN DE OPTIMIZACIÓN
   const [isOptimizing, setIsOptimizing] = useState(false); // <--- NUEVO
@@ -571,8 +590,123 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
   const delBrand = async (id: number) => { await carService.deleteBrand(id); showToast('Marca eliminada', 'info'); };
   const addColor = async () => { if (newColor) { await carService.createColor(newColor); setNewColor(''); showToast('Color agregado', 'success'); } };
   const delColor = async (id: number) => { await carService.deleteColor(id); showToast('Color eliminado', 'info'); };
-  const addUser = async () => { if (newUser.username && newUser.password) { await carService.createUser(newUser as User); setNewUser({ username: '', password: '', role: 'vendedor' }); showToast('Usuario creado', 'success'); } };
   const delUser = async (id: number) => { await carService.deleteUser(id); showToast('Usuario eliminado', 'info'); };
+
+  // Validación del formulario de usuario
+  const validateUserForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!newUser.nombre.trim() || newUser.nombre.length < 2) {
+      errors.nombre = 'Nombre debe tener al menos 2 caracteres';
+    }
+    if (!newUser.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email)) {
+      errors.email = 'Email inválido';
+    }
+    if (!newUser.telefono || newUser.telefono.length < 8) {
+      errors.telefono = 'Teléfono debe tener al menos 8 dígitos';
+    }
+    if (!newUser.username || newUser.username.length < 3) {
+      errors.username = 'Usuario debe tener al menos 3 caracteres';
+    }
+    if (!newUser.password || newUser.password.length < 8) {
+      errors.password = 'Contraseña debe tener al menos 8 caracteres';
+    }
+    if (!/[A-Z]/.test(newUser.password)) {
+      errors.password = 'Contraseña debe incluir mayúscula';
+    }
+    if (!/[0-9]/.test(newUser.password)) {
+      errors.password = 'Contraseña debe incluir número';
+    }
+    if (newUser.password !== newUser.confirmPassword) {
+      errors.confirmPassword = 'Las contraseñas no coinciden';
+    }
+
+    setUserErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const addUser = async () => {
+    if (!validateUserForm()) return;
+    
+    setIsCreatingUser(true);
+    try {
+      await carService.createUser({
+        nombre: newUser.nombre,
+        email: newUser.email,
+        telefono: newUser.telefono,
+        username: newUser.username,
+        password: newUser.password,
+        role: newUser.role as 'admin' | 'vendedor'
+      });
+      
+      showToast(`Usuario "${newUser.username}" creado exitosamente`, 'success');
+      setNewUser({ nombre: '', email: '', telefono: '', username: '', password: '', confirmPassword: '', role: 'vendedor' });
+      setUserErrors({});
+      setShowNewUserForm(false);
+      
+      // Recargar usuarios
+      const updatedUsers = await carService.getUsers();
+      setUsers(updatedUsers);
+    } catch (error) {
+      showToast('Error creando usuario', 'error');
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
+
+  const startEditUser = (user: any) => {
+    setEditingUser(user);
+    setNewUser({
+      nombre: user.nombre,
+      email: user.email,
+      telefono: user.telefono,
+      username: user.username,
+      password: '',
+      confirmPassword: '',
+      role: user.role
+    });
+    setUserErrors({});
+    setShowEditUserModal(true);
+  };
+
+  const saveUserChanges = async () => {
+    // Validación simplificada para edición
+    const errors: Record<string, string> = {};
+    if (newUser.nombre.trim().length < 2) errors.nombre = 'Nombre requerido';
+    if (!newUser.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email)) errors.email = 'Email inválido';
+    if (newUser.telefono.length < 8) errors.telefono = 'Teléfono requerido';
+    if (newUser.password && newUser.password.length < 8) errors.password = 'Mínimo 8 caracteres';
+    if (newUser.password !== newUser.confirmPassword) errors.confirmPassword = 'Contraseñas no coinciden';
+
+    if (Object.keys(errors).length > 0) {
+      setUserErrors(errors);
+      return;
+    }
+
+    setIsUpdatingUser(true);
+    try {
+      const updates: any = {
+        nombre: newUser.nombre,
+        email: newUser.email,
+        telefono: newUser.telefono,
+        username: newUser.username,
+        role: newUser.role
+      };
+      if (newUser.password) updates.password = newUser.password;
+
+      await carService.updateUser(editingUser.id, updates);
+      showToast('Usuario actualizado exitosamente', 'success');
+      
+      setShowEditUserModal(false);
+      setEditingUser(null);
+      const updatedUsers = await carService.getUsers();
+      setUsers(updatedUsers);
+    } catch (error) {
+      showToast('Error al actualizar usuario', 'error');
+    } finally {
+      setIsUpdatingUser(false);
+    }
+  };
 
   // 2. NUEVA LÓGICA DE OPTIMIZACIÓN MASIVA (INICIO) --->
   const handleEmergencyOptimize = async () => {
@@ -718,122 +852,550 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8 p-4">
-      <h2 className="text-2xl md:text-4xl font-black italic tracking-tighter text-white">CONFIGURACIÓN <span className="text-[#E8B923]">SISTEMA</span></h2>
-      
-      {/* CAMBIO EN EL GRID: 
-          Originalmente era 'md:grid-cols-3'. 
-          Puedes dejarlo así (la tarjeta roja bajará a la siguiente fila) 
-          o cambiarlo a 'md:grid-cols-2 lg:grid-cols-4' para que quepan todos.
-      */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        
-        {/* MARCAS */}
-        <div className={`${GLASS_BG} rounded-3xl p-6`}>
-          <h3 className="text-sm font-bold text-[#E8B923] mb-4 flex items-center gap-2"><Award size={16} /> GESTIÓN MARCAS</h3>
-          <div className="flex gap-2 mb-4">
-            <input className="bg-neutral-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white w-full" placeholder="Nueva Marca" value={newBrand} onChange={e => setNewBrand(e.target.value)} />
-            <button onClick={addBrand} className="bg-[#E8B923] text-black p-2 rounded-xl flex-shrink-0"><PlusCircle size={16} /></button>
-          </div>
-          <div className="h-64 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-            {brands.map(b => (<div key={b.id} className="flex justify-between items-center bg-white/5 p-2 rounded-lg hover:bg-white/10"><span className="text-xs text-white">{b.name}</span><button onClick={() => delBrand(b.id)} className="text-neutral-500 hover:text-red-500"><Trash2 size={12} /></button></div>))}
-          </div>
+      <div>
+        <h2 className="text-2xl md:text-4xl font-black italic tracking-tighter text-white">CONFIGURACIÓN <span className="text-[#C9A84C]">SISTEMA</span></h2>
+        <p className="text-neutral-500 text-xs md:text-sm mt-2 uppercase font-bold tracking-[0.2em]">Gestión integral de usuarios, marcas, colores y mantenimiento</p>
+      </div>
+
+      {/* SECCION 1: GESTIÓN DE USUARIOS */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`${GLASS_BG} rounded-3xl p-8`}>
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-bold text-white flex items-center gap-3">
+            <Users size={20} className="text-green-500" /> 
+            GESTIÓN DE USUARIOS
+          </h3>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowNewUserForm(!showNewUserForm)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold text-sm rounded-xl transition-all"
+          >
+            <PlusCircle size={16} /> NUEVO USUARIO
+          </motion.button>
         </div>
+
+        {/* FORMULARIO DE REGISTRO */}
+        {showNewUserForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-8 p-6 bg-white/5 rounded-2xl border border-white/10 space-y-4"
+          >
+            <h4 className="text-sm font-bold text-[#C9A84C] mb-4">Completa todos los campos</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* NOMBRE */}
+              <div>
+                <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Nombre Completo</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Juan Pérez"
+                  value={newUser.nombre}
+                  onChange={(e) => {
+                    setNewUser({ ...newUser, nombre: e.target.value });
+                    if (userErrors.nombre) setUserErrors({ ...userErrors, nombre: '' });
+                  }}
+                  className={`w-full bg-neutral-900 border rounded-xl px-4 py-3 text-white placeholder-neutral-600 transition-all ${
+                    userErrors.nombre ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-green-500'
+                  }`}
+                />
+                {userErrors.nombre && <p className="text-xs text-red-500 mt-1">{userErrors.nombre}</p>}
+              </div>
+
+              {/* EMAIL */}
+              <div>
+                <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Email</label>
+                <input
+                  type="email"
+                  placeholder="Ej: juan@example.com"
+                  value={newUser.email}
+                  onChange={(e) => {
+                    setNewUser({ ...newUser, email: e.target.value });
+                    if (userErrors.email) setUserErrors({ ...userErrors, email: '' });
+                  }}
+                  className={`w-full bg-neutral-900 border rounded-xl px-4 py-3 text-white placeholder-neutral-600 transition-all ${
+                    userErrors.email ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-green-500'
+                  }`}
+                />
+                {userErrors.email && <p className="text-xs text-red-500 mt-1">{userErrors.email}</p>}
+              </div>
+
+              {/* TELÉFONO */}
+              <div>
+                <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Teléfono</label>
+                <input
+                  type="tel"
+                  placeholder="Ej: 912345678"
+                  value={newUser.telefono}
+                  onChange={(e) => {
+                    setNewUser({ ...newUser, telefono: e.target.value });
+                    if (userErrors.telefono) setUserErrors({ ...userErrors, telefono: '' });
+                  }}
+                  className={`w-full bg-neutral-900 border rounded-xl px-4 py-3 text-white placeholder-neutral-600 transition-all ${
+                    userErrors.telefono ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-green-500'
+                  }`}
+                />
+                {userErrors.telefono && <p className="text-xs text-red-500 mt-1">{userErrors.telefono}</p>}
+              </div>
+
+              {/* ROL */}
+              <div>
+                <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Rol</label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  className="w-full bg-neutral-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-green-500 transition-all"
+                >
+                  <option value="vendedor">Vendedor</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </div>
+
+              {/* USERNAME */}
+              <div>
+                <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Usuario</label>
+                <input
+                  type="text"
+                  placeholder="Ej: juanperez"
+                  value={newUser.username}
+                  onChange={(e) => {
+                    setNewUser({ ...newUser, username: e.target.value });
+                    if (userErrors.username) setUserErrors({ ...userErrors, username: '' });
+                  }}
+                  className={`w-full bg-neutral-900 border rounded-xl px-4 py-3 text-white placeholder-neutral-600 transition-all ${
+                    userErrors.username ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-green-500'
+                  }`}
+                />
+                {userErrors.username && <p className="text-xs text-red-500 mt-1">{userErrors.username}</p>}
+              </div>
+
+              {/* CONTRASEÑA */}
+              <div>
+                <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Contraseña</label>
+                <input
+                  type="password"
+                  placeholder="Min 8 caracteres, mayúscula, número"
+                  value={newUser.password}
+                  onChange={(e) => {
+                    setNewUser({ ...newUser, password: e.target.value });
+                    if (userErrors.password) setUserErrors({ ...userErrors, password: '' });
+                  }}
+                  className={`w-full bg-neutral-900 border rounded-xl px-4 py-3 text-white placeholder-neutral-600 transition-all ${
+                    userErrors.password ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-green-500'
+                  }`}
+                />
+                {userErrors.password && <p className="text-xs text-red-500 mt-1">{userErrors.password}</p>}
+              </div>
+
+              {/* CONFIRMAR CONTRASEÑA */}
+              <div>
+                <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Confirmar Contraseña</label>
+                <input
+                  type="password"
+                  placeholder="Repite tu contraseña"
+                  value={newUser.confirmPassword}
+                  onChange={(e) => {
+                    setNewUser({ ...newUser, confirmPassword: e.target.value });
+                    if (userErrors.confirmPassword) setUserErrors({ ...userErrors, confirmPassword: '' });
+                  }}
+                  className={`w-full bg-neutral-900 border rounded-xl px-4 py-3 text-white placeholder-neutral-600 transition-all ${
+                    userErrors.confirmPassword ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-green-500'
+                  }`}
+                />
+                {userErrors.confirmPassword && <p className="text-xs text-red-500 mt-1">{userErrors.confirmPassword}</p>}
+              </div>
+            </div>
+
+            {/* BOTONES */}
+            <div className="flex gap-3 mt-6 pt-4 border-t border-white/10">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={addUser}
+                disabled={isCreatingUser}
+                className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-neutral-700 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                {isCreatingUser ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    CREANDO...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={18} /> CREAR USUARIO
+                  </>
+                )}
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setShowNewUserForm(false);
+                  setNewUser({ nombre: '', email: '', telefono: '', username: '', password: '', confirmPassword: '', role: 'vendedor' });
+                  setUserErrors({});
+                }}
+                className="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white font-bold py-3 rounded-xl transition-all"
+              >
+                CANCELAR
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* LISTA DE USUARIOS */}
+        <div className="space-y-3">
+          {users.length === 0 ? (
+            <div className="text-center py-8 text-neutral-500">
+              <Users size={32} className="mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No hay usuarios registrados</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {users.map((user) => (
+                <motion.div
+                  key={user.id}
+                  whileHover={{ y: -2 }}
+                  className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-4 transition-all"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <p className="font-bold text-white text-sm">{user.nombre || user.username}</p>
+                      <p className="text-xs text-neutral-500 mt-1">{user.email}</p>
+                      <p className="text-xs text-neutral-500">{user.telefono}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        onClick={() => startEditUser(user)}
+                        className="p-2 hover:bg-blue-500/20 rounded-lg transition-all"
+                        title="Editar usuario"
+                      >
+                        <Settings size={16} className="text-blue-500" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        onClick={() => delUser(user.id)}
+                        className="p-2 hover:bg-red-500/20 rounded-lg transition-all"
+                        title="Eliminar usuario"
+                      >
+                        <Trash2 size={16} className="text-red-500" />
+                      </motion.button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                    <span className={`text-xs font-bold px-2 py-1 rounded-md ${
+                      user.role === 'admin' 
+                        ? 'bg-red-500/20 text-red-500' 
+                        : 'bg-blue-500/20 text-blue-500'
+                    }`}>
+                      {user.role === 'admin' ? '👑 ADMIN' : '📊 VENDEDOR'}
+                    </span>
+                    <span className="text-xs text-neutral-600">@{user.username}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* MODAL PARA EDITAR USUARIO */}
+      <AnimatePresence>
+        {showEditUserModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setShowEditUserModal(false);
+              setEditingUser(null);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-neutral-900 border border-white/20 rounded-2xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto"
+            >
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <Settings size={20} className="text-blue-500" />
+                Editar Usuario
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Nombre Completo</label>
+                  <input
+                    type="text"
+                    value={newUser.nombre}
+                    onChange={(e) => setNewUser({ ...newUser, nombre: e.target.value })}
+                    className="w-full bg-neutral-800 border border-white/10 focus:border-blue-500 rounded-lg px-4 py-2 text-white"
+                  />
+                  {userErrors.nombre && <p className="text-xs text-red-500 mt-1">{userErrors.nombre}</p>}
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Email</label>
+                  <input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    className="w-full bg-neutral-800 border border-white/10 focus:border-blue-500 rounded-lg px-4 py-2 text-white"
+                  />
+                  {userErrors.email && <p className="text-xs text-red-500 mt-1">{userErrors.email}</p>}
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Teléfono</label>
+                  <input
+                    type="text"
+                    value={newUser.telefono}
+                    onChange={(e) => setNewUser({ ...newUser, telefono: e.target.value })}
+                    className="w-full bg-neutral-800 border border-white/10 focus:border-blue-500 rounded-lg px-4 py-2 text-white"
+                  />
+                  {userErrors.telefono && <p className="text-xs text-red-500 mt-1">{userErrors.telefono}</p>}
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Usuario</label>
+                  <input
+                    type="text"
+                    value={newUser.username}
+                    disabled
+                    className="w-full bg-neutral-800 border border-white/10 rounded-lg px-4 py-2 text-neutral-500 cursor-not-allowed"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Rol</label>
+                  <select
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                    className="w-full bg-neutral-800 border border-white/10 focus:border-blue-500 rounded-lg px-4 py-2 text-white"
+                  >
+                    <option value="vendedor">Vendedor</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Nueva Contraseña (opcional)</label>
+                  <input
+                    type="password"
+                    placeholder="Dejar en blanco para no cambiar"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    className="w-full bg-neutral-800 border border-white/10 focus:border-blue-500 rounded-lg px-4 py-2 text-white placeholder-neutral-600"
+                  />
+                  {userErrors.password && <p className="text-xs text-red-500 mt-1">{userErrors.password}</p>}
+                </div>
+
+                {newUser.password && (
+                  <div>
+                    <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 block">Confirmar Contraseña</label>
+                    <input
+                      type="password"
+                      placeholder="Confirma la nueva contraseña"
+                      value={newUser.confirmPassword}
+                      onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
+                      className="w-full bg-neutral-800 border border-white/10 focus:border-blue-500 rounded-lg px-4 py-2 text-white placeholder-neutral-600"
+                    />
+                    {userErrors.confirmPassword && <p className="text-xs text-red-500 mt-1">{userErrors.confirmPassword}</p>}
+                  </div>
+                )}
+
+                <div className="flex gap-3 mt-6 pt-4 border-t border-white/10">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={saveUserChanges}
+                    disabled={isUpdatingUser}
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-neutral-700 text-white font-bold py-2 rounded-lg transition-all"
+                  >
+                    {isUpdatingUser ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setShowEditUserModal(false);
+                      setEditingUser(null);
+                    }}
+                    className="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white font-bold py-2 rounded-lg transition-all"
+                  >
+                    CANCELAR
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* SECCION 2: MARCAS Y COLORES */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* MARCAS */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`${GLASS_BG} rounded-3xl p-8`}>
+          <h3 className="text-lg font-bold text-white flex items-center gap-3 mb-6">
+            <Award size={20} className="text-[#C9A84C]" /> 
+            GESTIÓN DE MARCAS
+          </h3>
+          <div className="flex gap-2 mb-6">
+            <input
+              type="text"
+              placeholder="Nueva marca..."
+              value={newBrand}
+              onChange={(e) => setNewBrand(e.target.value)}
+              className="flex-1 bg-neutral-900 border border-white/10 focus:border-[#C9A84C] rounded-xl px-4 py-3 text-white placeholder-neutral-600 transition-all"
+            />
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={addBrand}
+              className="px-4 py-3 bg-[#C9A84C] hover:bg-[#C9A84C]/80 text-black font-bold rounded-xl transition-all"
+            >
+              <PlusCircle size={18} />
+            </motion.button>
+          </div>
+          <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+            {brands.length === 0 ? (
+              <p className="text-center text-neutral-500 text-sm py-8">No hay marcas</p>
+            ) : (
+              brands.map((brand) => (
+                <motion.div
+                  key={brand.id}
+                  whileHover={{ x: 4 }}
+                  className="flex justify-between items-center bg-white/5 hover:bg-white/10 p-3 rounded-lg transition-all border border-white/5"
+                >
+                  <span className="text-white font-medium text-sm">{brand.name}</span>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    onClick={() => delBrand(brand.id)}
+                    className="p-2 hover:bg-red-500/20 rounded-lg transition-all"
+                  >
+                    <Trash2 size={14} className="text-red-500" />
+                  </motion.button>
+                </motion.div>
+              ))
+            )}
+          </div>
+        </motion.div>
 
         {/* COLORES */}
-        <div className={`${GLASS_BG} rounded-3xl p-6`}>
-          <h3 className="text-sm font-bold text-blue-500 mb-4 flex items-center gap-2"><ImagePlus size={16} /> GESTIÓN COLORES</h3>
-          <div className="flex gap-2 mb-4">
-            <input className="bg-neutral-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white w-full" placeholder="Nuevo Color" value={newColor} onChange={e => setNewColor(e.target.value)} />
-            <button onClick={addColor} className="bg-blue-500 text-white p-2 rounded-xl flex-shrink-0"><PlusCircle size={16} /></button>
-          </div>
-          <div className="h-64 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-            {colors.map(c => (<div key={c.id} className="flex justify-between items-center bg-white/5 p-2 rounded-lg hover:bg-white/10"><span className="text-xs text-white">{c.name}</span><button onClick={() => delColor(c.id)} className="text-neutral-500 hover:text-red-500"><Trash2 size={12} /></button></div>))}
-          </div>
-        </div>
-
-        {/* USUARIOS */}
-        <div className={`${GLASS_BG} rounded-3xl p-6`}>
-          <h3 className="text-sm font-bold text-green-500 mb-4 flex items-center gap-2"><Users size={16} /> GESTIÓN USUARIOS</h3>
-          <div className="space-y-2 mb-4">
-            <input className="bg-neutral-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white w-full" placeholder="Usuario" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} />
-            <input className="bg-neutral-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white w-full" type="password" placeholder="Contraseña" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} />
-            <button onClick={addUser} className="w-full bg-green-500 text-black font-bold text-xs py-2 rounded-xl">CREAR USUARIO</button>
-          </div>
-          <div className="h-48 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-            {users.map(u => (<div key={u.id} className="flex justify-between items-center bg-white/5 p-2 rounded-lg hover:bg-white/10"><span className="text-xs text-white">{u.username} <span className="text-neutral-500">({u.role})</span></span><button onClick={() => delUser(u.id)} className="text-neutral-500 hover:text-red-500"><Trash2 size={12} /></button></div>))}
-          </div>
-        </div>
-
-        {/* 3. NUEVA TARJETA: ZONA DE PELIGRO (INICIO) ---> */}
-        <div className={`${GLASS_BG} rounded-3xl p-6 border border-red-500/20 bg-red-500/5`}>
-          <h3 className="text-sm font-bold text-red-500 mb-4 flex items-center gap-2">
-            <AlertTriangle size={16} /> MANTENIMIENTO
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className={`${GLASS_BG} rounded-3xl p-8`}>
+          <h3 className="text-lg font-bold text-white flex items-center gap-3 mb-6">
+            <Palette size={20} className="text-blue-500" /> 
+            GESTIÓN DE COLORES
           </h3>
-          <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-            Herramientas de optimización y pruebas del sistema.
-          </p>
-          <div className="space-y-3">
-             <button 
-              onClick={handleEmergencyOptimize} 
-              disabled={isOptimizing}
-              className={`w-full py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
-                  isOptimizing 
-                  ? 'bg-neutral-800 text-gray-500 cursor-not-allowed' 
-                  : 'bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500 hover:text-white'
-              }`}
+          <div className="flex gap-2 mb-6">
+            <input
+              type="text"
+              placeholder="Nuevo color..."
+              value={newColor}
+              onChange={(e) => setNewColor(e.target.value)}
+              className="flex-1 bg-neutral-900 border border-white/10 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-neutral-600 transition-all"
+            />
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={addColor}
+              className="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-all"
             >
-              {isOptimizing ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    OPTIMIZANDO...
-                  </>
-              ) : (
-                  'OPTIMIZAR IMÁGENES DB'
-              )}
-            </button>
-
-            <button 
-              onClick={handleSimulateMetrics} 
-              disabled={isSimulating}
-              className={`w-full py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
-                  isSimulating 
-                  ? 'bg-neutral-800 text-gray-500 cursor-not-allowed' 
-                  : 'bg-blue-500/10 text-blue-500 border border-blue-500/50 hover:bg-blue-500 hover:text-white'
-              }`}
-            >
-              {isSimulating ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    SIMULANDO...
-                  </>
-              ) : (
-                  '🎲 SIMULAR MÉTRICAS'
-              )}
-            </button>
-
-            <button 
-              onClick={handleResetMetrics} 
-              disabled={isResetting}
-              className={`w-full py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
-                  isResetting 
-                  ? 'bg-neutral-800 text-gray-500 cursor-not-allowed' 
-                  : 'bg-orange-500/10 text-orange-500 border border-orange-500/50 hover:bg-orange-500 hover:text-white'
-              }`}
-            >
-              {isResetting ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    RESETEANDO...
-                  </>
-              ) : (
-                  '🔄 RESETEAR MÉTRICAS'
-              )}
-            </button>
+              <PlusCircle size={18} />
+            </motion.button>
           </div>
-        </div>
-        {/* <--- NUEVA TARJETA: ZONA DE PELIGRO (FIN) */}
-
+          <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+            {colors.length === 0 ? (
+              <p className="text-center text-neutral-500 text-sm py-8">No hay colores</p>
+            ) : (
+              colors.map((color) => (
+                <motion.div
+                  key={color.id}
+                  whileHover={{ x: 4 }}
+                  className="flex justify-between items-center bg-white/5 hover:bg-white/10 p-3 rounded-lg transition-all border border-white/5"
+                >
+                  <span className="text-white font-medium text-sm">{color.name}</span>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    onClick={() => delColor(color.id)}
+                    className="p-2 hover:bg-red-500/20 rounded-lg transition-all"
+                  >
+                    <Trash2 size={14} className="text-red-500" />
+                  </motion.button>
+                </motion.div>
+              ))
+            )}
+          </div>
+        </motion.div>
       </div>
+
+      {/* SECCION 3: MANTENIMIENTO */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className={`${GLASS_BG} rounded-3xl p-8 border border-orange-500/20 bg-orange-500/5`}>
+        <h3 className="text-lg font-bold text-orange-500 flex items-center gap-3 mb-6">
+          <AlertTriangle size={20} /> 
+          HERRAMIENTAS DE MANTENIMIENTO
+        </h3>
+        <p className="text-sm text-neutral-400 mb-6">Funciones avanzadas de optimización y pruebas del sistema</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleEmergencyOptimize}
+            disabled={isOptimizing}
+            className={`p-4 rounded-xl font-bold text-sm transition-all flex flex-col items-start gap-2 border ${
+              isOptimizing
+                ? 'bg-neutral-800 text-gray-500 border-neutral-700 cursor-not-allowed'
+                : 'bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500/20 hover:border-red-500/50'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {isOptimizing && <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+              <span>🖼️ OPTIMIZAR IMÁGENES</span>
+            </div>
+            <span className="text-xs opacity-75">Comprime todas las imágenes de la BD</span>
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleSimulateMetrics}
+            disabled={isSimulating}
+            className={`p-4 rounded-xl font-bold text-sm transition-all flex flex-col items-start gap-2 border ${
+              isSimulating
+                ? 'bg-neutral-800 text-gray-500 border-neutral-700 cursor-not-allowed'
+                : 'bg-blue-500/10 text-blue-500 border-blue-500/30 hover:bg-blue-500/20 hover:border-blue-500/50'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {isSimulating && <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+              <span>🎲 SIMULAR MÉTRICAS</span>
+            </div>
+            <span className="text-xs opacity-75">Añade vistas/interesados aleatorios</span>
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleResetMetrics}
+            disabled={isResetting}
+            className={`p-4 rounded-xl font-bold text-sm transition-all flex flex-col items-start gap-2 border ${
+              isResetting
+                ? 'bg-neutral-800 text-gray-500 border-neutral-700 cursor-not-allowed'
+                : 'bg-orange-500/10 text-orange-500 border-orange-500/30 hover:bg-orange-500/20 hover:border-orange-500/50'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {isResetting && <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+              <span>🔄 RESETEAR MÉTRICAS</span>
+            </div>
+            <span className="text-xs opacity-75">Pone en cero todas las métricas</span>
+          </motion.button>
+        </div>
+      </motion.div>
     </motion.div>
   );
 };
@@ -842,7 +1404,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
 const InventoryView: React.FC<InventoryViewProps> = ({ stock, onEdit, onDelete }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full space-y-8">
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-      <div><h2 className="text-2xl md:text-4xl font-black italic tracking-tighter uppercase text-white">ELITE STOCK <span className="text-[#E8B923]">LIST</span></h2><p className="text-neutral-500 text-xs md:text-sm mt-1 uppercase font-bold tracking-[0.2em]">Control total sobre unidades y precios</p></div>
+      <div><h2 className="text-2xl md:text-4xl font-black italic tracking-tighter uppercase text-white">ELITE STOCK <span className="text-[#C9A84C]">LIST</span></h2><p className="text-neutral-500 text-xs md:text-sm mt-1 uppercase font-bold tracking-[0.2em]">Control total sobre unidades y precios</p></div>
     </div>
     <div className={`${GLASS_BG} overflow-hidden shadow-2xl w-full rounded-3xl`}>
       <div className="overflow-x-auto w-full">
@@ -855,40 +1417,40 @@ const InventoryView: React.FC<InventoryViewProps> = ({ stock, onEdit, onDelete }
               const lastPrice = car.precioHistorial?.[car.precioHistorial.length - 2]?.price;
               const priceTrend = lastPrice ? (car.precio < lastPrice ? 'down' : car.precio > lastPrice ? 'up' : 'stable') : 'stable';
               return (
-                <motion.tr key={car.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }} className="group border-l-4 border-l-transparent hover:border-l-[#E8B923] transition-all">
+                <motion.tr key={car.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }} className="group border-l-4 border-l-transparent hover:border-l-[#C9A84C] transition-all">
                   <td className="p-4">
                     <div className="flex items-center gap-6">
-                      <motion.div whileHover={{ scale: 1.1 }} className="w-24 h-16 rounded-2xl overflow-hidden ring-1 ring-white/10 group-hover:ring-[#E8B923]/50 transition-all shadow-lg relative flex-shrink-0">
+                      <motion.div whileHover={{ scale: 1.1 }} className="w-24 h-16 rounded-2xl overflow-hidden ring-1 ring-white/10 group-hover:ring-[#C9A84C]/50 transition-all shadow-lg relative flex-shrink-0">
                         {car.imagenes && car.imagenes.length > 0 ? <AutoCarousel images={car.imagenes} interval={3500} /> : <img src={car.imagen || 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=800'} alt="" className="w-full h-full object-cover" />}
                         <div className="absolute top-1 left-1 bg-black/80 backdrop-blur-md px-2 py-0.5 rounded-lg text-[8px] font-bold text-white uppercase">{car.ano}</div>
                       </motion.div>
                       <div>
-                        <h4 className="font-black text-base text-white italic leading-tight">{car.marca} <span className="text-[#E8B923]">{car.modelo}</span></h4>
+                        <h4 className="font-black text-base text-white italic leading-tight">{car.marca} <span className="text-[#C9A84C]">{car.modelo}</span></h4>
                         <div className="flex items-center gap-2 mt-1"><span className="text-[10px] font-mono text-neutral-500">{car.patente || 'S/P'}</span><span className="w-1 h-1 rounded-full bg-neutral-700" /><span className="text-[10px] font-bold text-neutral-500 uppercase tracking-tighter">{car.km.toLocaleString()} KM</span></div>
                       </div>
                     </div>
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2"><span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase border ${car.estado === 'Disponible' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-[#E8B923]/10 text-[#E8B923] border-[#E8B923]/20'}`}>{car.estado}</span>{priceTrend === 'down' && <span className="p-1 bg-blue-500/20 text-blue-500 rounded-md"><History size={10} /></span>}</div>
+                      <div className="flex items-center gap-2"><span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase border ${car.estado === 'Disponible' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-[#C9A84C]/10 text-[#C9A84C] border-[#C9A84C]/20'}`}>{car.estado}</span>{priceTrend === 'down' && <span className="p-1 bg-blue-500/20 text-blue-500 rounded-md"><History size={10} /></span>}</div>
                       <span className="text-[9px] font-bold text-neutral-600 uppercase tracking-widest">{car.tipoVenta} • {car.vendedor}</span>
                     </div>
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-4">
                       <div className="text-center bg-white/5 p-2 rounded-xl border border-white/5 w-16"><p className="text-xs font-black text-white">{car.vistas}</p><p className="text-[8px] text-neutral-600 uppercase font-bold">Vistas</p></div>
-                      <div className="text-center bg-[#E8B923]/5 p-2 rounded-xl border border-[#E8B923]/10 w-16"><p className="text-xs font-black text-[#E8B923]">{car.interesados}</p><p className="text-[8px] text-neutral-600 uppercase font-bold">Leads</p></div>
+                      <div className="text-center bg-[#C9A84C]/5 p-2 rounded-xl border border-[#C9A84C]/10 w-16"><p className="text-xs font-black text-[#C9A84C]">{car.interesados}</p><p className="text-[8px] text-neutral-600 uppercase font-bold">Leads</p></div>
                     </div>
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col">
-                      <div className="flex items-center gap-2"><p className="font-mono font-bold text-sm text-white">{car.precio.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</p>{priceTrend === 'down' ? <ArrowDownRight size={14} className="text-green-500" /> : priceTrend === 'up' ? <ArrowUpRight size={14} className="text-[#E8B923]" /> : null}</div>
+                      <div className="flex items-center gap-2"><p className="font-mono font-bold text-sm text-white">{car.precio.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</p>{priceTrend === 'down' ? <ArrowDownRight size={14} className="text-green-500" /> : priceTrend === 'up' ? <ArrowUpRight size={14} className="text-[#C9A84C]" /> : null}</div>
                       <p className="text-[9px] font-bold text-neutral-700 uppercase tracking-tighter">Est. Com: {car.comisionEstimada?.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</p>
                     </div>
                   </td>
                   <td className="p-4 text-right">
                     <div className="flex justify-end gap-3">
-                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => onEdit(car)} className="p-3 bg-neutral-900 border border-white/5 rounded-2xl hover:bg-[#E8B923] hover:text-black transition-all shadow-xl text-white"><Edit3 size={16} /></motion.button>
+                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => onEdit(car)} className="p-3 bg-neutral-900 border border-white/5 rounded-2xl hover:bg-[#C9A84C] hover:text-black transition-all shadow-xl text-white"><Edit3 size={16} /></motion.button>
                       <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => onDelete(car.id)} className="p-3 bg-neutral-900 border border-white/5 rounded-2xl hover:bg-[#DAA520] hover:text-black transition-all shadow-xl text-white"><Trash2 size={16} /></motion.button>
                     </div>
                   </td>
@@ -906,6 +1468,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({ stock, onEdit, onDelete }
 const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) => {
   const [brandOptions, setBrandOptions] = useState<string[]>(CAR_BRANDS);
   const [colorOptions, setColorOptions] = useState<string[]>(CAR_COLORS);
+  const [vendorOptions, setVendorOptions] = useState<any[]>([]);
   // Estado para saber si se está subiendo una imagen
   const [isUploading, setIsUploading] = useState(false);
 
@@ -916,11 +1479,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
         if (brands && brands.length > 0) setBrandOptions(brands.map(b => b.name));
         const colors = await carService.getColors();
         if (colors && colors.length > 0) setColorOptions(colors.map(c => c.name));
+        const vendors = await carService.getVendors();
+        if (vendors && vendors.length > 0) setVendorOptions(vendors);
       } catch { /* Fallback */ }
     };
     fetchData();
   }, []);
-
   // INICIALIZACIÓN DEL ESTADO (Incluye nuevos campos del backend)
   const [formData, setFormData] = useState<Partial<Vehiculo>>(car || {
     marca: 'Chevrolet', modelo: '', version: '', precio: 0, km: 0, ano: currentYear,
@@ -1058,7 +1622,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
       <form onSubmit={handleSubmit} className="space-y-8">
         
         {/* SECCIÓN 1: IDENTIDAD */}
-        <FormSection title="Identidad & Clasificación" icon={Car} color="text-[#E8B923]">
+        <FormSection title="Identidad & Clasificación" icon={Car} color="text-[#C9A84C]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <AutocompleteField label="Marca" value={formData.marca} options={brandOptions} placeholder="Buscar..." onChange={(v) => setFormData({ ...formData, marca: v })} />
             <Field label="Modelo" value={formData.modelo} onChange={(v) => setFormData({ ...formData, modelo: v })} />
@@ -1092,6 +1656,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <SelectField label="Modalidad" value={formData.tipoVenta} options={['Propio', 'Consignado']} onChange={(v) => setFormData({ ...formData, tipoVenta: v as 'Propio' | 'Consignado' })} />
+            <SelectField 
+              label="Vendedor Asignado" 
+              value={formData.vendedor_id ? `${formData.vendedor_id}:${formData.vendedor}` : 'Selecciona un vendedor'} 
+              options={['Selecciona un vendedor', ...vendorOptions.map(v => `${v.id}:${v.nombre}`)]} 
+              onChange={(v) => {
+                if (v && v !== 'Selecciona un vendedor') {
+                  const parts = v.split(':');
+                  const id = parseInt(parts[0]);
+                  const nombre = parts.slice(1).join(':'); // En caso que el nombre tenga ':'
+                  setFormData({ ...formData, vendedor_id: id, vendedor: nombre });
+                }
+              }} 
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <SelectField label="Estatus" value={formData.estado} options={['Disponible', 'Reservado', 'Vendido']} onChange={(v) => setFormData({ ...formData, estado: v as 'Disponible' | 'Reservado' | 'Vendido' })} />
           </div>
         </FormSection>
@@ -1147,9 +1726,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               {/* Botón Fotos Exterior */}
-              <label className={`cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#E8B923] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                <div className="p-3 bg-white/5 rounded-full group-hover:bg-[#E8B923]/20 transition-colors">
-                  {isUploading ? <Loader2 size={24} className="text-[#E8B923] animate-spin" /> : <Car size={24} className="text-white group-hover:text-[#E8B923]" />}
+              <label className={`cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#C9A84C] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div className="p-3 bg-white/5 rounded-full group-hover:bg-[#C9A84C]/20 transition-colors">
+                  {isUploading ? <Loader2 size={24} className="text-[#C9A84C] animate-spin" /> : <Car size={24} className="text-white group-hover:text-[#C9A84C]" />}
                 </div>
                 <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider text-center">
                     {isUploading ? 'Subiendo...' : 'Fotos Exterior'}
@@ -1158,9 +1737,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
               </label>
 
               {/* Botón Fotos Interior */}
-              <label className={`cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#E8B923] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                <div className="p-3 bg-white/5 rounded-full group-hover:bg-[#E8B923]/20 transition-colors">
-                  {isUploading ? <Loader2 size={24} className="text-[#E8B923] animate-spin" /> : <Armchair size={24} className="text-white group-hover:text-[#E8B923]" />}
+              <label className={`cursor-pointer bg-neutral-900 border border-white/10 hover:border-[#C9A84C] border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all group ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div className="p-3 bg-white/5 rounded-full group-hover:bg-[#C9A84C]/20 transition-colors">
+                  {isUploading ? <Loader2 size={24} className="text-[#C9A84C] animate-spin" /> : <Armchair size={24} className="text-white group-hover:text-[#C9A84C]" />}
                 </div>
                 <span className="text-xs font-bold text-neutral-400 group-hover:text-white uppercase tracking-wider text-center">
                     {isUploading ? 'Subiendo...' : 'Fotos Interior'}
@@ -1175,13 +1754,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
                   <img src={currentImage} className="w-full h-full object-contain pointer-events-none" />
                   {formData.imagenes && formData.imagenes.length > 1 && (
                     <>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev > 0 ? prev - 1 : (formData.imagenes?.length || 1) - 1); }} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-[#E8B923] hover:text-black transition-colors z-40"><ChevronLeft size={20} /></button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev < (formData.imagenes?.length || 1) - 1 ? prev + 1 : 0); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-[#E8B923] hover:text-black transition-colors z-40"><ChevronRight size={20} /></button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev > 0 ? prev - 1 : (formData.imagenes?.length || 1) - 1); }} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-[#C9A84C] hover:text-black transition-colors z-40"><ChevronLeft size={20} /></button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev < (formData.imagenes?.length || 1) - 1 ? prev + 1 : 0); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-[#C9A84C] hover:text-black transition-colors z-40"><ChevronRight size={20} /></button>
                     </>
                   )}
                   {formData.hotspots?.filter(h => h.imageIndex === activeImageIndex).map(spot => (
-                    <div key={spot.id} className="absolute w-5 h-5 bg-[#E8B923]/90 border-2 border-white rounded-full shadow-[0_0_15px_rgba(232,185,35,0.8)] transform -translate-x-1/2 -translate-y-1/2 z-20 group/spot cursor-pointer hover:scale-125 transition-transform" style={{ left: `${spot.x}%`, top: `${spot.y}%` }}>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteHotspot(spot.id); }} className="absolute -top-4 -right-4 bg-neutral-900 text-[#E8B923] rounded-full p-1 opacity-0 group-hover/spot:opacity-100 transition-all scale-75 hover:scale-100 border border-[#E8B923]/30"><Trash2 size={12} /></button>
+                    <div key={spot.id} className="absolute w-5 h-5 bg-[#C9A84C]/90 border-2 border-white rounded-full shadow-[0_0_15px_rgba(232,185,35,0.8)] transform -translate-x-1/2 -translate-y-1/2 z-20 group/spot cursor-pointer hover:scale-125 transition-transform" style={{ left: `${spot.x}%`, top: `${spot.y}%` }}>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteHotspot(spot.id); }} className="absolute -top-4 -right-4 bg-neutral-900 text-[#C9A84C] rounded-full p-1 opacity-0 group-hover/spot:opacity-100 transition-all scale-75 hover:scale-100 border border-[#C9A84C]/30"><Trash2 size={12} /></button>
                       <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-black/90 backdrop-blur-md border border-white/10 text-white text-[9px] font-bold px-3 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover/spot:opacity-100 pointer-events-none z-50">{spot.label}</div>
                     </div>
                   ))}
@@ -1195,7 +1774,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
             {formData.imagenes && formData.imagenes.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
                 {formData.imagenes.map((img, i) => (
-                  <div key={i} onClick={() => setActiveImageIndex(i)} className={`w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${activeImageIndex === i ? 'border-[#E8B923] scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                  <div key={i} onClick={() => setActiveImageIndex(i)} className={`w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${activeImageIndex === i ? 'border-[#C9A84C] scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                     <img src={img} className="w-full h-full object-cover" />
                     <button type="button" onClick={(e) => { e.stopPropagation(); removeImage(i) }} className="absolute top-0 right-0 bg-black/70 p-1 hover:bg-red-500 transition-colors"><Trash2 size={10} className="text-white" /></button>
                   </div>
@@ -1205,11 +1784,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
 
             {tempHotspotCoords && (
               <div className="bg-neutral-900 p-4 rounded-xl border border-white/10 flex flex-col gap-2">
-                <h4 className="text-xs font-bold text-[#E8B923] flex items-center gap-2"><Target size={14} /> Nuevo Punto de Interés</h4>
+                <h4 className="text-xs font-bold text-[#C9A84C] flex items-center gap-2"><Target size={14} /> Nuevo Punto de Interés</h4>
                 <Field label="Etiqueta" value={hotspotLabel} onChange={setHotspotLabel} />
                 <Field label="Detalle" value={hotspotDetail} onChange={setHotspotDetail} />
                 <div className="flex gap-2">
-                  <button type="button" onClick={handleAddHotspot} className="flex-1 bg-[#E8B923] text-black font-bold py-2 rounded-lg text-xs hover:bg-[#c9a01b] transition-colors">GUARDAR PUNTO</button>
+                  <button type="button" onClick={handleAddHotspot} className="flex-1 bg-[#C9A84C] text-black font-bold py-2 rounded-lg text-xs hover:bg-[#c9a01b] transition-colors">GUARDAR PUNTO</button>
                   <button type="button" onClick={() => setTempHotspotCoords(null)} className="flex-1 bg-white/10 text-white font-bold py-2 rounded-lg text-xs hover:bg-white/20 transition-colors">CANCELAR</button>
                 </div>
               </div>
@@ -1222,7 +1801,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
           whileTap={{ scale: 0.99 }} 
           type="submit" 
           disabled={isUploading} 
-          className={`w-full font-black py-5 rounded-[2rem] shadow-xl hover:shadow-[#E8B923]/20 transition-all ${isUploading ? 'bg-neutral-800 text-gray-500 cursor-not-allowed' : 'bg-[#E8B923] text-black'}`}
+          className={`w-full font-black py-5 rounded-[2rem] shadow-xl hover:shadow-[#C9A84C]/20 transition-all ${isUploading ? 'bg-neutral-800 text-gray-500 cursor-not-allowed' : 'bg-[#C9A84C] text-black'}`}
         >
           {isUploading ? 'ESPERA, SUBIENDO IMÁGENES...' : (car ? 'GUARDAR CAMBIOS' : 'PUBLICAR UNIDAD')}
         </motion.button>
@@ -1231,42 +1810,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
   );
 };
 
-// 6. LOGIN SCREEN
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack }) => {
-  const [u, setU] = useState(''); const [p, setP] = useState('');
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const ok = await carService.login(u, p);
-      if (ok) onLogin(); else alert("Credenciales incorrectas (Prueba: admin/admin)");
-    } catch { alert("Error conexión con el servidor"); }
-  };
-  return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-[#E8B923]/5 blur-[150px] rounded-full" />
-      <motion.form initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onSubmit={handleLogin} className={`${GLASS_BG} w-full max-w-sm p-8 rounded-[2rem] relative z-10`}>
-        <div className="text-center mb-10">
-          <Zap size={48} className="mx-auto text-[#E8B923] mb-4" fill="#E8B923" />
-          <h1 className="text-4xl font-black italic text-white tracking-tighter">LIONS <span className="text-[#E8B923]">ELITE</span></h1>
-        </div>
-        <div className="space-y-4">
-          <div className="relative">
-            <input className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 pl-12 text-white outline-none focus:border-[#E8B923]/50 transition-all" placeholder="Usuario" value={u} onChange={e => setU(e.target.value)} />
-            <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
-          </div>
-          <div className="relative">
-            <input className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 pl-12 text-white outline-none focus:border-[#E8B923]/50 transition-all" type="password" placeholder="Contraseña" value={p} onChange={e => setP(e.target.value)} />
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
-          </div>
-        </div>
-        <button type="submit" className="w-full bg-gradient-to-r from-[#DAA520] to-[#E8B923] text-black font-bold py-4 rounded-2xl mt-8 hover:scale-[1.02] transition-transform">ACCEDER</button>
-        {onBack && <button type="button" onClick={onBack} className="w-full text-center text-neutral-500 text-xs mt-4 hover:text-white">Volver al Catálogo</button>}
-      </motion.form>
-    </div>
-  );
-};
-
-// 7. MAIN COMPONENT (DASHBOARD WRAPPER CORREGIDO PARA RESPONSIVE)
+// 6. MAIN COMPONENT (DASHBOARD WRAPPER CORREGIDO PARA RESPONSIVE)
 const LionsEliteDashboard: React.FC<DashboardProps> = ({
   stock,
   notifications,
@@ -1275,8 +1819,12 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
   onDelete,
   onBack,
   onLogout,
+  userRole,
+  userId,
 }) => {
-  const [view, setView] = useState<'overview' | 'inventory' | 'form' | 'settings' | 'analytics'>('overview');
+  // Vendedores ven inventario por defecto, admins ven dashboard
+  const defaultView = userRole === 'vendedor' ? 'inventory' : 'overview';
+  const [view, setView] = useState<'overview' | 'inventory' | 'form' | 'settings' | 'analytics'>(defaultView);
   const [filterText, setFilterText] = useState('');
   const [editingCar, setEditingCar] = useState<Vehiculo | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -1301,10 +1849,10 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
     const avgPrice = totalValue / (available.length || 1);
     const conversionRate = ((sold.length / stock.length) * 100).toFixed(1);
     return { totalValue, avgDays, leads, count: stock.length, totalComission, available: available.length, sold: sold.length, totalViews, avgPrice, conversionRate };
-  }, [stock]);
+  }, [stock, userId]);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#E8B923] selection:text-black overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#C9A84C] selection:text-black overflow-x-hidden">
       <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
 
       {/* --- OVERLAY PARA MÓVIL --- */}
@@ -1328,26 +1876,26 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
       `}>
         <div className="p-6 h-20 flex items-center justify-between md:justify-center lg:justify-start border-b border-white/5">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-10 h-10 bg-[#E8B923] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(232,185,35,0.2)] flex-shrink-0"><Zap size={22} className="text-black fill-black" /></div>
-            <span className="font-black text-xl italic md:hidden lg:block whitespace-nowrap">LIONS <span className="text-[#E8B923]">ELITE</span></span>
+            <div className="w-10 h-10 bg-[#C9A84C] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(232,185,35,0.2)] flex-shrink-0"><Zap size={22} className="text-black fill-black" /></div>
+            <span className="font-black text-xl italic md:hidden lg:block whitespace-nowrap">LIONS <span className="text-[#C9A84C]">ELITE</span></span>
           </div>
           {/* Botón cerrar visible solo en móvil */}
           <button onClick={() => setMobileMenuOpen(false)} className="md:hidden text-neutral-400 hover:text-white"><X size={24} /></button>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-2 custom-scrollbar">
-          <NavItem active={view === 'overview'} icon={BarChart3} label="Dashboard" onClick={() => { setView('overview'); setMobileMenuOpen(false); }} />
+          {userRole === 'admin' && <NavItem active={view === 'overview'} icon={BarChart3} label="Dashboard" onClick={() => { setView('overview'); setMobileMenuOpen(false); }} />}
           <NavItem active={view === 'inventory'} icon={Car} label="Inventario" onClick={() => { setView('inventory'); setMobileMenuOpen(false); }} />
           <NavItem active={view === 'form'} icon={PlusCircle} label="Publicar" onClick={() => { setEditingCar(null); setView('form'); setMobileMenuOpen(false); }} />
-          <NavItem active={view === 'analytics'} icon={LineChart} label="Analítica" onClick={() => { setView('analytics'); setMobileMenuOpen(false); }} />
-          <NavItem active={view === 'settings'} icon={Settings} label="Configuración" onClick={() => { setView('settings'); setMobileMenuOpen(false); }} />
+          {userRole === 'admin' && <NavItem active={view === 'analytics'} icon={LineChart} label="Analítica" onClick={() => { setView('analytics'); setMobileMenuOpen(false); }} />}
+          {userRole === 'admin' && <NavItem active={view === 'settings'} icon={Settings} label="Configuración" onClick={() => { setView('settings'); setMobileMenuOpen(false); }} />}
           <div className="h-px bg-white/5 my-4 mx-2" />
           {onBack && <NavItem active={false} icon={ArrowLeft} label="Volver Catálogo" onClick={onBack} color="text-blue-500/70" />}
           <NavItem active={false} icon={LogOut} label="Cerrar Sesión" onClick={onLogout} color="text-red-500/70" />
         </nav>
 
         <div className="p-4 border-t border-white/5 md:hidden lg:flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-xs font-bold text-[#E8B923]">AD</div>
+          <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-xs font-bold text-[#C9A84C]">AD</div>
           <div className="overflow-hidden">
             <p className="text-xs font-bold text-white truncate">Admin User</p>
             <p className="text-[10px] text-neutral-500 truncate">Gerente Ventas</p>
@@ -1391,12 +1939,12 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
             <div className="relative">
               <button onClick={() => setShowNotifications(!showNotifications)} className="p-2 bg-neutral-900 rounded-full hover:bg-white/10 transition-colors relative">
                 <Bell size={18} className="text-neutral-400" />
-                {notifications.length > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#E8B923] rounded-full border-2 border-[#050505]" />}
+                {notifications.length > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#C9A84C] rounded-full border-2 border-[#050505]" />}
               </button>
               <AnimatePresence>
                 {showNotifications && (
                   <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="absolute right-0 mt-4 w-72 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 origin-top-right">
-                    <div className="p-4 border-b border-white/5 bg-white/5"><h4 className="text-xs font-bold text-[#E8B923] uppercase tracking-widest">Notificaciones</h4></div>
+                    <div className="p-4 border-b border-white/5 bg-white/5"><h4 className="text-xs font-bold text-[#C9A84C] uppercase tracking-widest">Notificaciones</h4></div>
                     <div className="max-h-64 overflow-y-auto">
                       {notifications.map(n => (
                         <div key={n.id} className="p-4 hover:bg-white/5 border-b border-white/5 last:border-0 flex gap-3 transition-colors cursor-pointer">
@@ -1449,27 +1997,29 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
   );
 };
 
-export default function SellerPortal({ stock, onAdd, onUpdate, onDelete, onBack }: SellerPortalProps) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+export default function SellerPortal({ stock, onAdd, onUpdate, onDelete, onBack, userRole, userId }: SellerPortalProps) {
+  // Filtrar stock según el rol del usuario
+  const filteredStock = userRole === 'vendedor' && userId 
+    ? stock.filter(car => car.vendedor_id === userId)
+    : stock;
+
   const [notifications] = useState<Notification[]>([
     { id: 1, text: 'Baja de precio detectada en vehículo premium', type: 'price', time: '2h' },
     { id: 2, text: 'Nueva oferta recibida por BMW M4', type: 'lead', time: '5h' },
     { id: 3, text: 'Stock crítico en SUV compactos', type: 'warning', time: '1d' },
   ]);
 
-  if (!isLoggedIn) {
-    return <LoginScreen onLogin={() => setIsLoggedIn(true)} onBack={onBack} />;
-  }
-
   return (
     <LionsEliteDashboard
-      stock={stock}
+      stock={filteredStock}
       notifications={notifications}
       onAdd={onAdd}
       onUpdate={onUpdate}
       onDelete={onDelete}
       onBack={onBack}
-      onLogout={() => setIsLoggedIn(false)}
+      onLogout={onBack || (() => {})}
+      userRole={userRole}
+      userId={userId}
     />
   );
 }

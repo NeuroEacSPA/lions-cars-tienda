@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
     height: 85
   },
   brandTitle: { fontSize: 22, fontWeight: 'black', color: '#FFFFFF', textTransform: 'uppercase' },
-  brandSubtitle: { fontSize: 8, color: '#E8B923', letterSpacing: 3, marginTop: 2, textTransform: 'uppercase' },
+  brandSubtitle: { fontSize: 8, color: '#C9A84C', letterSpacing: 3, marginTop: 2, textTransform: 'uppercase' },
   
   qrContainer: { backgroundColor: '#fff', padding: 3, borderRadius: 4 },
   qrImage: { width: 50, height: 50 },
@@ -49,11 +49,11 @@ const styles = StyleSheet.create({
 
   heroInfo: { width: '42%', paddingLeft: 25, justifyContent: 'center' },
   
-  carBrand: { fontSize: 10, color: '#E8B923', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 },
+  carBrand: { fontSize: 10, color: '#C9A84C', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 },
   carModel: { fontSize: 26, fontWeight: 'heavy', color: '#000', lineHeight: 1, marginBottom: 5 },
   carVersion: { fontSize: 11, color: '#555', marginBottom: 15 },
   
-  priceBadge: { backgroundColor: '#E8B923', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 4, alignSelf: 'flex-start', shadowOpacity: 0.5 },
+  priceBadge: { backgroundColor: '#C9A84C', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 4, alignSelf: 'flex-start', shadowOpacity: 0.5 },
   priceText: { fontSize: 20, fontWeight: 'bold', color: '#000' },
   priceLabel: { fontSize: 7, color: '#000', textTransform: 'uppercase', marginBottom: 1 },
 
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     color: '#000', 
     textTransform: 'uppercase', 
     borderBottomWidth: 2, 
-    borderBottomColor: '#E8B923', 
+    borderBottomColor: '#C9A84C', 
     paddingBottom: 4,
     marginBottom: 10,
     marginTop: 15
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   listValue: { width: '60%', fontSize: 9, color: '#000', fontWeight: 'bold' },
 
   // FINANCE
-  financeBox: { backgroundColor: '#fffbe6', borderRadius: 6, padding: 12, borderLeftWidth: 4, borderLeftColor: '#E8B923' },
+  financeBox: { backgroundColor: '#fffbe6', borderRadius: 6, padding: 12, borderLeftWidth: 4, borderLeftColor: '#C9A84C' },
   financeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
   financeText: { fontSize: 9, color: '#555' },
   financeValue: { fontSize: 9, fontWeight: 'bold', color: '#000' },
@@ -211,8 +211,8 @@ export const CarPdfDocument = ({ car }: { car: Vehiculo }) => {
                     
                     {car.financiable ? (
                         <View style={styles.financeBox}>
-                            <View style={{flexDirection:'row', justifyContent:'space-between', marginBottom:8, borderBottomWidth:1, borderBottomColor:'#E8B923', paddingBottom:4}}>
-                                <Text style={{fontSize:9, fontWeight:'bold', color:'#E8B923'}}>PLAN FLEXIBLE</Text>
+                            <View style={{flexDirection:'row', justifyContent:'space-between', marginBottom:8, borderBottomWidth:1, borderBottomColor:'#C9A84C', paddingBottom:4}}>
+                                <Text style={{fontSize:9, fontWeight:'bold', color:'#C9A84C'}}>PLAN FLEXIBLE</Text>
                                 <Text style={{fontSize:9, fontWeight:'bold', color:'#000'}}>PIE 20%</Text>
                             </View>
                             <View style={styles.financeRow}>
@@ -262,7 +262,7 @@ export const CarPdfDocument = ({ car }: { car: Vehiculo }) => {
         <View style={styles.footer}>
             <Text style={styles.footerText}>Av. Gabriela Mistral 925, Puerto Montt | </Text>
             <Link src="https://wa.me/56958016208" style={{ textDecoration: 'none' }}>
-                <Text style={[styles.footerText, { color: '#E8B923', fontWeight: 'bold' }]}>WhatsApp: +56 9 5801 6208</Text>
+                <Text style={[styles.footerText, { color: '#C9A84C', fontWeight: 'bold' }]}>WhatsApp: +56 9 5801 6208</Text>
             </Link>
             <Text style={styles.footerText}> | www.lionscars.cl</Text>
         </View>
