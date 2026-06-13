@@ -24,7 +24,18 @@ class UserBase(BaseModel):
     password: str 
 
 class UserCreate(UserBase):
+    nombre: str
+    email: str
+    telefono: str
     role: str = "vendedor"
+
+class UserUpdate(BaseModel):
+    nombre: Optional[str] = None
+    email: Optional[str] = None
+    telefono: Optional[str] = None
+    username: Optional[str] = None
+    role: Optional[str] = None
+    password: Optional[str] = None
 
 class User(UserBase):
     id: int
@@ -58,6 +69,7 @@ class VehiculoBase(BaseModel):
     # Venta
     tipoVenta: str
     vendedor: str
+    vendedor_id: Optional[int] = None  # <--- NUEVO: ID del vendedor asignado
     financiable: bool = True
     valorPie: int
     estado: str = "Disponible"

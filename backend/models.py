@@ -1,13 +1,20 @@
-from sqlalchemy import Column, Integer, String, Boolean, JSON, Float
+from sqlalchemy import Column, Integer, String, Boolean, JSON, Float, DateTime
+from datetime import datetime
 from database import Base
 
 # --- CONFIGURACIONES DEL SISTEMA ---
 class UserDB(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, index=True)
+    email = Column(String, unique=True, index=True)
+    telefono = Column(String)
     username = Column(String, unique=True, index=True)
-    password = Column(String) # En prod usar hashing
-    role = Column(String, default="vendedor") # admin | vendedor
+    password = Column(String)  # Hashed con bcrypt
+    role = Column(String, default="vendedor")  # admin | vendedor
+    activo = Column(Boolean, default=True)
+    creado_en = Column(DateTime, default=datetime.utcnow)
+    actualizado_en = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class BrandDB(Base):
     __tablename__ = "brands"

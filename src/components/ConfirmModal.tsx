@@ -34,10 +34,10 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       glow: 'shadow-red-900/20'
     },
     warning: { 
-      icon: 'text-[#E8B923]', 
-      bg: 'bg-[#E8B923]/10', 
-      border: 'border-[#E8B923]/20', 
-      btn: 'bg-[#E8B923] hover:bg-yellow-500 text-black',
+      icon: 'text-[#C9A84C]', 
+      bg: 'bg-[#C9A84C]/10', 
+      border: 'border-[#C9A84C]/20', 
+      btn: 'bg-[#C9A84C] hover:bg-yellow-500 text-black',
       glow: 'shadow-yellow-900/20'
     },
     info: { 

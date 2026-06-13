@@ -39,3 +39,10 @@ backend/__pycache__/
 
 # Archivos compilados de python sueltos
 *.pyc
+# Python virtual environment
+.venv/
+backend/.venv/
+
+# Archivos de copia temporal
+backend/main copy.py
+src/services/api copy.ts
