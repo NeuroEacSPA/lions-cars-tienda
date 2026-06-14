@@ -531,32 +531,42 @@ const BlurText = ({ text, className = '', wordDelay = 60 }: { text: string; clas
   </span>
 );
 
-// Converts image URLs to base64 data URLs so react-pdf can embed them
-// without relying on its internal fetch (which fails due to CORS from the web worker)
+// Converts image URLs to JPEG base64 via Canvas API.
+// Canvas uses the browser's native image loader (no CORS/fetch issues),
+// then exports as JPEG which react-pdf handles reliably.
+function imgToJpegDataUrl(src: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      try {
+        const MAX = 900;
+        const scale = img.naturalWidth > MAX ? MAX / img.naturalWidth : 1;
+        const w = Math.round(img.naturalWidth * scale);
+        const h = Math.round(img.naturalHeight * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(src); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      } catch {
+        resolve(src);
+      }
+    };
+    img.onerror = () => resolve(src);
+    img.src = src.startsWith('http') ? src : `${window.location.origin}${src.startsWith('/') ? '' : '/'}${src}`;
+  });
+}
+
 function useBase64Images(urls: string[]): string[] {
   const [b64, setB64] = useState<string[]>([]);
   const key = urls.join('|');
   useEffect(() => {
     if (!urls.length) return;
     let cancelled = false;
-    Promise.all(
-      urls.map(async (url) => {
-        try {
-          const abs = url.startsWith('http') ? url : `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`;
-          const res = await fetch(abs);
-          if (!res.ok) return url;
-          const blob = await res.blob();
-          return await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        } catch {
-          return url;
-        }
-      })
-    ).then(results => { if (!cancelled) setB64(results); });
+    Promise.all(urls.map(imgToJpegDataUrl))
+      .then(results => { if (!cancelled) setB64(results); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
