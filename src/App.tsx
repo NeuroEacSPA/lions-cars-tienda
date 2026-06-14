@@ -466,331 +466,460 @@ const FinanceModal = ({ car, onClose }: { car: Vehiculo; onClose: () => void }) 
   );
 };
 
-// ── CAR MODAL ─────────────────────────────────────────────────
+// ── REACTBITS MICRO-COMPONENTS ──────────────────────────────────────────────
+// Inlined from reactbits.dev — no extra deps, no CSS files
+
+// ShinyText: pure CSS shimmer sweep (zero JS overhead)
+const ShinyText = ({ text, className = '', speed = 3.5, color = '#E8B923', shine = '#fffbe0' }: {
+  text: string; className?: string; speed?: number; color?: string; shine?: string;
+}) => (
+  <span className={className} style={{
+    backgroundImage: `linear-gradient(120deg,${color} 0%,${color} 30%,${shine} 50%,${color} 70%,${color} 100%)`,
+    backgroundSize: '200% auto',
+    WebkitBackgroundClip: 'text',
+    backgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    animation: `shineText ${speed}s linear infinite`,
+  }}>{text}</span>
+);
+
+// SpotlightCard: mouse-tracked radial glow overlay (from reactbits.dev/components/spotlight-card)
+const SpotlightCard = ({ children, className = '', spotlightColor = 'rgba(200,16,46,0.25)' }: {
+  children: React.ReactNode; className?: string; spotlightColor?: string;
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const onMove = (e: React.MouseEvent) => {
+    if (!ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    ref.current.style.setProperty('--sx', `${e.clientX - r.left}px`);
+    ref.current.style.setProperty('--sy', `${e.clientY - r.top}px`);
+  };
+  return (
+    <div ref={ref} onMouseMove={onMove} className={`relative overflow-hidden ${className}`}>
+      <div className="pointer-events-none absolute inset-0 z-[1] transition-opacity duration-300"
+        style={{ background: `radial-gradient(260px circle at var(--sx,-200px) var(--sy,-200px),${spotlightColor},transparent 70%)` }} />
+      <div className="relative z-[2]">{children}</div>
+    </div>
+  );
+};
+
+// CountUp: spring-animated counter (from reactbits.dev/text-animations/count-up)
+const CountUp = ({ to, from = 0, duration = 1.6, className = '', fmt }: {
+  to: number; from?: number; duration?: number; className?: string; fmt?: (n: number) => string;
+}) => {
+  const ref = useRef<HTMLSpanElement>(null);
+  const mv = useMotionValue(from);
+  const spring = useSpring(mv, { damping: 20 + 40 / duration, stiffness: 100 / duration });
+  useEffect(() => { const t = setTimeout(() => mv.set(to), 120); return () => clearTimeout(t); }, [to, mv]);
+  useEffect(() => spring.on('change', v => {
+    if (ref.current) ref.current.textContent = fmt ? fmt(Math.round(v)) : Math.round(v).toLocaleString('es-CL');
+  }), [spring, fmt]);
+  return <span ref={ref} className={className}>{fmt ? fmt(from) : from.toLocaleString('es-CL')}</span>;
+};
+
+// BlurText: word-by-word blur entrance (from reactbits.dev/text-animations/blur-text)
+const BlurText = ({ text, className = '', wordDelay = 60 }: { text: string; className?: string; wordDelay?: number }) => (
+  <span className={`inline-flex flex-wrap ${className}`}>
+    {text.split(' ').map((w, i) => (
+      <motion.span key={i}
+        initial={{ opacity: 0, filter: 'blur(14px)', y: 18 }}
+        animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+        transition={{ duration: 0.45, delay: 0.05 + i * wordDelay / 1000, ease: [0.16, 1, 0.3, 1] }}
+        className="mr-[0.22em] last:mr-0 inline-block"
+      >{w}</motion.span>
+    ))}
+  </span>
+);
+
+// ── CAR MODAL ─────────────────────────────────────────────────────────────────
 const CarModal = ({
   car, onClose, onContact, onOpenFinance
 }: {
-  car: Vehiculo;
-  onClose: () => void;
-  onContact: (c: Vehiculo) => void;
-  onOpenFinance: () => void;
+  car: Vehiculo; onClose: () => void; onContact: (c: Vehiculo) => void; onOpenFinance: () => void;
 }) => {
   type TabType = 'EXTERIOR' | 'INTERIOR';
   const [activeTab, setActiveTab] = useState<TabType>('EXTERIOR');
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const thumbsRef = useRef<HTMLDivElement>(null);
 
   const images = Array.isArray(car.imagenes) && car.imagenes.length > 0
-    ? car.imagenes
-    : [car.imagen || 'https://via.placeholder.com/800x600/121212/e8b923?text=Lyons+Actyon'];
+    ? car.imagenes : [car.imagen || '/web3.jpg'];
   const splitIndex = Math.ceil(images.length / 2);
   const exteriorImages = images.slice(0, splitIndex);
   const interiorImages = images.slice(splitIndex);
   const activeImages = activeTab === 'INTERIOR' && interiorImages.length > 0 ? interiorImages : exteriorImages;
   const currentImage = activeImages[currentImgIdx] || images[0];
 
-  const shareUrl = car.slug
-    ? `https://lyonsactyon.cl/autos/${car.slug}`
-    : `https://lyonsactyon.cl/vehiculo/${car.id}`;
+  const shareUrl = car.slug ? `https://lyonsactyon.cl/autos/${car.slug}` : `https://lyonsactyon.cl/vehiculo/${car.id}`;
 
   const handleTabChange = (tab: TabType) => { setActiveTab(tab); setCurrentImgIdx(0); setIsZoomed(false); };
-  const goToPrevImage = () => setCurrentImgIdx(p => p > 0 ? p - 1 : activeImages.length - 1);
-  const goToNextImage = () => setCurrentImgIdx(p => p < activeImages.length - 1 ? p + 1 : 0);
+  const goToPrev = () => setCurrentImgIdx(p => (p > 0 ? p - 1 : activeImages.length - 1));
+  const goToNext = () => setCurrentImgIdx(p => (p < activeImages.length - 1 ? p + 1 : 0));
 
   const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({ title: `${car.marca} ${car.modelo} ${car.ano} — Lyons & Actyon Automotriz`, url: shareUrl });
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-    }
+    if (navigator.share) navigator.share({ title: `${car.marca} ${car.modelo} ${car.ano} — Lyons & Actyon`, url: shareUrl });
+    else navigator.clipboard.writeText(shareUrl);
   };
 
+  // Swipe support
+  const onTouchStart = (e: React.TouchEvent) => setTouchStart(e.touches[0].clientX);
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    const dx = e.changedTouches[0].clientX - touchStart;
+    if (Math.abs(dx) > 40) dx < 0 ? goToNext() : goToPrev();
+    setTouchStart(null);
+  };
+
+  // Scroll active thumb into view
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const el = thumbsRef.current?.children[currentImgIdx] as HTMLElement;
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, [currentImgIdx]);
+
+  useEffect(() => {
+    const kd = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') goToPrevImage();
-      if (e.key === 'ArrowRight') goToNextImage();
+      if (e.key === 'ArrowLeft') goToPrev();
+      if (e.key === 'ArrowRight') goToNext();
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', kd);
+    return () => window.removeEventListener('keydown', kd);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose, activeImages]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = 'unset'; };
+    return () => { document.body.style.overflow = ''; };
   }, []);
 
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black sm:bg-black/95 sm:backdrop-blur-xl sm:p-2 md:p-6 font-sans overflow-hidden"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-sm p-0 sm:p-2 md:p-5 font-sans"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#C8102E]/20 via-black to-black pointer-events-none" />
-
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        initial={{ opacity: 0, scale: 0.96, y: 28 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
         onClick={e => e.stopPropagation()}
-        className="relative w-full max-w-[1600px] h-[100dvh] sm:h-[95vh] bg-[#0a0a0c] sm:border border-red-900/30 sm:rounded-2xl sm:shadow-[0_0_100px_rgba(200,16,46,0.2)] flex flex-col lg:flex-row overflow-hidden"
+        className="relative w-full max-w-[1600px] h-[100dvh] sm:h-[95vh] bg-[#070709] sm:rounded-3xl overflow-hidden flex flex-col lg:flex-row border border-white/[0.05] shadow-[0_0_80px_rgba(0,0,0,0.9)]"
       >
-        {/* IMÁGENES */}
-        <div className="w-full lg:w-[65%] h-[40vh] sm:h-[50vh] lg:h-full relative flex flex-col bg-black shrink-0">
-          <div className="absolute top-0 left-0 w-full z-20 p-4 sm:p-6 flex justify-between items-start pointer-events-none">
-            <div className="flex gap-4 pointer-events-auto">
-              <div className="flex bg-black/60 backdrop-blur-md border border-red-900/40 rounded-xl p-1.5 scale-90 origin-top-left sm:scale-100 shadow-lg">
-                {(['EXTERIOR', 'INTERIOR'] as TabType[]).map(tab => (
-                  <button key={tab} onClick={() => handleTabChange(tab)}
-                    className={`px-4 sm:px-5 py-2 text-[9px] sm:text-[11px] font-bold tracking-widest transition-all rounded-lg ${activeTab === tab ? 'bg-[#E8B923] text-black shadow-[0_0_15px_rgba(232,185,35,0.4)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-                  >{tab}</button>
-                ))}
-              </div>
+
+        {/* ── LEFT: GALLERY ─────────────────────────────────────────────── */}
+        <div
+          className="relative w-full lg:w-[60%] h-[46vh] sm:h-[52vh] lg:h-full flex flex-col overflow-hidden shrink-0 bg-black"
+          onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+        >
+          {/* Ambient blurred background from current image */}
+          <div className="absolute inset-0 pointer-events-none z-0">
+            <img src={currentImage} className="w-full h-full object-cover scale-125 blur-3xl opacity-[0.18] saturate-150" loading="lazy" alt="" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black/80" />
+          </div>
+
+          {/* Top bar */}
+          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-3 sm:p-5">
+            {/* EXTERIOR / INTERIOR tabs */}
+            <div className="flex bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl p-1 shadow-lg">
+              {(['EXTERIOR', 'INTERIOR'] as TabType[]).map(tab => (
+                <button key={tab} onClick={() => handleTabChange(tab)}
+                  className={`px-3.5 sm:px-5 py-1.5 text-[9px] sm:text-[10px] font-black tracking-widest transition-all duration-200 rounded-lg ${
+                    activeTab === tab
+                      ? 'bg-[#E8B923] text-black shadow-[0_0_14px_rgba(232,185,35,0.5)]'
+                      : 'text-white/50 hover:text-white'
+                  }`}
+                >{tab}</button>
+              ))}
             </div>
-            <button onClick={onClose} className="pointer-events-auto p-2.5 bg-black/60 rounded-full text-white sm:hidden backdrop-blur-md border border-white/10 hover:bg-[#C8102E] transition-all">
-              <X size={20} />
-            </button>
-            <div className="hidden sm:flex items-center gap-2 bg-[#C8102E]/20 border border-[#C8102E]/40 px-4 py-1.5 rounded-full animate-pulse pointer-events-auto shadow-[0_0_15px_rgba(200,16,46,0.3)]">
-              <div className="w-2 h-2 bg-[#C8102E] rounded-full shadow-[0_0_5px_#C8102E]" />
-              <span className="text-[10px] text-[#E8B923] font-bold uppercase tracking-wider">15 Personas viendo</span>
+
+            <div className="flex items-center gap-2">
+              {/* Live badge */}
+              <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-xl border border-[#C8102E]/40 px-3 py-1.5 rounded-full shadow-[0_0_12px_rgba(200,16,46,0.25)]">
+                <span className="w-1.5 h-1.5 bg-[#C8102E] rounded-full animate-pulse shadow-[0_0_4px_#C8102E]" />
+                <span className="text-[9px] text-[#E8B923] font-black uppercase tracking-wider hidden sm:inline">15 viendo</span>
+              </div>
+              {/* Mobile close */}
+              <button onClick={onClose} className="lg:hidden p-2 bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl text-white hover:bg-[#C8102E]/20 transition-all">
+                <X size={17} />
+              </button>
             </div>
           </div>
 
-          <div className="flex-1 relative overflow-hidden flex items-center justify-center group bg-gradient-to-b from-zinc-900 to-black">
+          {/* Main image */}
+          <div className="flex-1 relative z-10 flex items-center justify-center overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.img
                 key={`${activeTab}-${currentImgIdx}`}
                 src={currentImage}
-                initial={{ opacity: 0, scale: 0.95 }} 
-                animate={{ opacity: 1, scale: 1 }} 
-                exit={{ opacity: 0, scale: 1.05 }}
-                transition={{ duration: 0.4 }}
-                className={`w-full h-full object-contain transition-transform duration-700 ${isZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in'}`}
-                onClick={() => setIsZoomed(!isZoomed)}
+                initial={{ opacity: 0, scale: 1.04, filter: 'blur(4px)' }}
+                animate={{ opacity: 1, scale: isZoomed ? 1.65 : 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className={`w-full h-full object-contain select-none ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
+                onClick={() => setIsZoomed(z => !z)}
+                draggable={false}
                 loading="lazy"
                 alt={`${car.marca} ${car.modelo} ${car.ano}`}
-                onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x600/121212/e8b923?text=Error+Imagen'; }}
+                onError={e => { (e.target as HTMLImageElement).src = '/web3.jpg'; }}
               />
             </AnimatePresence>
-         
 
+            {/* Hotspots */}
             {!isZoomed && car.hotspots?.filter((h: Hotspot) =>
               h.imageIndex === currentImgIdx || (h.imageIndex === undefined && currentImgIdx === 0)
             ).map((spot: Hotspot) => (
               <motion.div key={spot.id} initial={{ scale: 0 }} animate={{ scale: 1 }}
-                className="absolute w-6 h-6 -ml-3 -mt-3 z-30 cursor-pointer group/hotspot"
-                style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
-              >
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[#E8B923] opacity-75 animate-ping" />
-                <span className="relative inline-flex rounded-full h-6 w-6 bg-[#C8102E] border-2 border-[#E8B923] items-center justify-center shadow-[0_0_15px_rgba(232,185,35,0.6)]">
+                className="absolute w-6 h-6 -ml-3 -mt-3 z-30 cursor-pointer group/hs"
+                style={{ left: `${spot.x}%`, top: `${spot.y}%` }}>
+                <span className="absolute inset-0 rounded-full bg-[#E8B923]/70 animate-ping" />
+                <span className="relative flex h-6 w-6 rounded-full bg-[#C8102E] border-2 border-[#E8B923] items-center justify-center shadow-[0_0_12px_rgba(232,185,35,0.6)]">
                   <span className="w-1.5 h-1.5 bg-[#E8B923] rounded-full" />
                 </span>
-                <div className="absolute left-1/2 -translate-x-1/2 top-8 lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-4 w-48 sm:w-56 bg-black/95 backdrop-blur-xl border border-red-900/50 p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] opacity-0 group-hover/hotspot:opacity-100 transition-opacity duration-300 pointer-events-none z-50">
-                  <p className="text-[10px] text-[#E8B923] font-black uppercase tracking-[0.2em] mb-1.5">{spot.label}</p>
-                  <p className="text-xs text-gray-300 leading-relaxed">{spot.detail}</p>
+                <div className="absolute left-1/2 -translate-x-1/2 top-9 lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-3 w-52 bg-black/95 backdrop-blur-xl border border-[#C8102E]/40 p-4 rounded-2xl shadow-2xl opacity-0 group-hover/hs:opacity-100 transition-opacity pointer-events-none z-50">
+                  <p className="text-[10px] text-[#E8B923] font-black uppercase tracking-[0.2em] mb-1">{spot.label}</p>
+                  <p className="text-xs text-zinc-300 leading-relaxed">{spot.detail}</p>
                 </div>
               </motion.div>
             ))}
 
-            <button onClick={goToPrevImage} className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 p-3 bg-black/60 text-white rounded-full hover:bg-[#C8102E] hover:scale-110 transition-all border border-red-900/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-40 backdrop-blur-md">
-              <ChevronLeft size={20} />
-            </button>
-            <button onClick={goToNextImage} className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 p-3 bg-black/60 text-white rounded-full hover:bg-[#C8102E] hover:scale-110 transition-all border border-red-900/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-40 backdrop-blur-md">
-              <ChevronRight size={20} />
-            </button>
+            {/* Nav arrows */}
+            {activeImages.length > 1 && (
+              <>
+                <motion.button whileTap={{ scale: 0.92 }} onClick={goToPrev}
+                  className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center bg-black/70 backdrop-blur-sm border border-white/10 rounded-full text-white hover:bg-[#C8102E] hover:border-[#C8102E] transition-all shadow-lg">
+                  <ChevronLeft size={18} />
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.92 }} onClick={goToNext}
+                  className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center bg-black/70 backdrop-blur-sm border border-white/10 rounded-full text-white hover:bg-[#C8102E] hover:border-[#C8102E] transition-all shadow-lg">
+                  <ChevronRight size={18} />
+                </motion.button>
+              </>
+            )}
+
+            {/* Image counter pill */}
+            <div className="absolute bottom-3 right-4 z-20 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10">
+              <span className="text-[11px] font-bold text-white tabular-nums">{currentImgIdx + 1} / {activeImages.length}</span>
+            </div>
           </div>
 
-          <div className="h-20 sm:h-28 bg-[#030303] border-t border-red-900/30 flex items-center gap-3 px-4 sm:px-6 overflow-x-auto scrollbar-hide py-3">
+          {/* Thumbnail strip */}
+          <div ref={thumbsRef} className="relative z-10 h-[4.5rem] sm:h-24 bg-black/80 backdrop-blur-sm border-t border-white/[0.06] flex items-center gap-2 px-3 overflow-x-auto scrollbar-hide py-2 shrink-0">
             {activeImages.map((img: string, idx: number) => (
-              <button key={idx} onClick={() => setCurrentImgIdx(idx)}
-                className={`relative flex-shrink-0 w-24 sm:w-32 h-14 sm:h-20 rounded-xl overflow-hidden border-2 transition-all duration-300 ${currentImgIdx === idx ? 'border-[#E8B923] scale-105 shadow-[0_0_20px_rgba(232,185,35,0.4)]' : 'border-transparent opacity-50 hover:opacity-100 hover:border-red-900/50'}`}
+              <motion.button key={idx} whileTap={{ scale: 0.94 }} onClick={() => setCurrentImgIdx(idx)}
+                className={`flex-shrink-0 h-full aspect-[4/3] rounded-xl overflow-hidden transition-all duration-250 ring-2 ${
+                  currentImgIdx === idx ? 'ring-[#E8B923] scale-105 shadow-[0_0_16px_rgba(232,185,35,0.45)]' : 'ring-transparent opacity-40 hover:opacity-75 hover:ring-white/20'
+                }`}
               >
-                <img src={img} className="w-full h-full object-cover" alt={`Vista ${idx + 1}`} loading="lazy"
-                  onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150x100/121212/e8b923?text=Error'; }}
-                />
-              </button>
+                <img src={img} className="w-full h-full object-cover" loading="lazy" alt={`Vista ${idx + 1}`}
+                  onError={e => { (e.target as HTMLImageElement).src = '/web3.jpg'; }} />
+              </motion.button>
             ))}
           </div>
         </div>
 
-        {/* INFORMACIÓN */}
-        <div className="w-full lg:w-[35%] flex-1 lg:h-full min-h-0 flex flex-col bg-[#0a0a0c] border-l border-red-900/30 relative">
-          <button onClick={onClose} className="hidden sm:block absolute top-6 right-6 z-50 text-gray-500 hover:text-[#C8102E] hover:rotate-90 transition-all duration-300 bg-black/50 p-2 rounded-full border border-white/5">
-            <X size={20} />
-          </button>
+        {/* ── RIGHT: INFO PANEL ─────────────────────────────────────────── */}
+        <div className="relative w-full lg:w-[40%] flex-1 lg:h-full flex flex-col bg-[#060608] border-l border-white/[0.04] min-h-0">
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 md:p-10">
-            <div className="mb-8 border-b border-red-900/20 pb-8">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-[#E8B923] text-xs font-black uppercase tracking-[0.4em]">{car.marca}</h3>
-                <button onClick={handleShare} className="p-2.5 rounded-xl bg-black hover:bg-red-900/30 text-gray-400 hover:text-white transition-all border border-red-900/30 shadow-sm" title="Compartir">
-                  <Share2 size={16} />
-                </button>
+          {/* Brand header */}
+          <div className="shrink-0 flex items-center justify-between px-5 sm:px-7 py-3.5 border-b border-white/[0.05] bg-black/40 backdrop-blur-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-[#C8102E]/20 border border-[#C8102E]/30 flex items-center justify-center shrink-0">
+                <Car size={14} className="text-[#C8102E]" />
               </div>
-             <motion.h2 
-                initial={{ opacity: 0, x: -20 }} 
-                animate={{ opacity: 1, x: 0 }} 
-                className="text-4xl sm:text-5xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 tracking-tighter mb-5 leading-none"
-              >
-                {car.modelo}
-              </motion.h2>
-              <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4">
-                <motion.span 
-                  initial={{ opacity: 0, x: -20 }} 
-                  animate={{ opacity: 1, x: 0 }} 
-                  transition={{ delay: 0.1 }}
-                  className="text-3xl sm:text-4xl font-black text-[#E8B923] drop-shadow-[0_2px_10px_rgba(232,185,35,0.3)]"
-                >
-                  {formatPrice(car.precio)}
-                </motion.span>
-                {car.estado === 'Disponible' && (
-                  <span className="bg-[#C8102E]/10 text-[#C8102E] border border-[#C8102E]/40 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest mb-1 shadow-[0_0_10px_rgba(200,16,46,0.1)]">
-                    Entrega Inmediata
-                  </span>
-                )}
-              </div>
-              {car.slug && (
-                <p className="text-[10px] text-zinc-600 mt-4 font-mono truncate">lyonsactyon.cl/autos/{car.slug}</p>
+              <span className="text-[10px] text-[#E8B923]/90 font-black uppercase tracking-[0.35em]">{car.marca}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={handleShare} title="Compartir"
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-white transition-all border border-white/[0.06]">
+                <Share2 size={14} />
+              </button>
+              <button onClick={onClose}
+                className="hidden lg:flex p-2 rounded-xl bg-white/5 hover:bg-[#C8102E]/20 text-zinc-500 hover:text-[#C8102E] transition-all border border-white/[0.06]">
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar px-5 sm:px-7 pt-5 pb-4">
+
+            {/* Model — BlurText animation */}
+            <div className="mb-1">
+              <BlurText text={car.modelo}
+                className="text-[1.9rem] sm:text-[2.4rem] font-black italic text-white leading-none tracking-tighter"
+                wordDelay={70}
+              />
+            </div>
+
+            {/* Price — ShinyText */}
+            <div className="flex flex-wrap items-center gap-3 mb-1.5">
+              <ShinyText text={formatPrice(car.precio)} className="text-2xl sm:text-[1.7rem] font-black" speed={3.5} />
+              {car.estado === 'Disponible' && (
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.75 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35 }}
+                  className="px-3 py-1 bg-[#C8102E]/10 border border-[#C8102E]/40 text-[#C8102E] text-[9px] font-black uppercase tracking-widest rounded-lg"
+                >Entrega Inmediata</motion.span>
               )}
             </div>
+            {car.slug && <p className="text-[10px] text-zinc-700 font-mono mb-5 truncate">lyonsactyon.cl/autos/{car.slug}</p>}
 
-            <div className="grid grid-cols-2 gap-4 mb-10">
+            {/* SpotlightCard badges */}
+            <div className="grid grid-cols-2 gap-2 mb-5">
               {[
-                { Icon: RefreshCw, color: 'text-[#C8102E]', label: 'Retoma', val: 'Recibimos tu Auto' },
-                { Icon: User, color: 'text-[#E8B923]', label: 'Dueños', val: `${car.duenos} Propietario${car.duenos > 1 ? 's' : ''}` },
-                { Icon: FileCheck, color: 'text-[#C8102E]', label: 'Papeles', val: 'Al Día 2026' },
-                { Icon: Settings, color: 'text-[#E8B923]', label: 'Inspección', val: 'Aprobada' },
-              ].map(({ Icon, color, label, val }) => (
-                <div key={label} className="bg-black border border-white/5 p-4 rounded-2xl flex items-center gap-4 hover:border-red-900/40 hover:bg-red-900/5 transition-all shadow-lg">
-                  <div className={`p-2 rounded-xl bg-white/5 ${color} shrink-0`}>
-                    <Icon size={20} />
+                { Icon: RefreshCw, hex: '#C8102E', label: 'Retoma', val: 'Recibimos tu Auto' },
+                { Icon: User,       hex: '#E8B923', label: 'Dueños', val: `${car.duenos} Propietario${car.duenos > 1 ? 's' : ''}` },
+                { Icon: FileCheck,  hex: '#C8102E', label: 'Papeles', val: 'Al Día 2026' },
+                { Icon: Settings,   hex: '#E8B923', label: 'Inspección', val: 'Aprobada' },
+              ].map(({ Icon, hex, label, val }) => (
+                <SpotlightCard key={label}
+                  className="bg-[#0c0c0e] border border-white/[0.06] rounded-2xl p-3.5 hover:border-white/[0.12] transition-colors cursor-default"
+                  spotlightColor={`${hex}35`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl shrink-0" style={{ background: `${hex}18`, color: hex }}>
+                      <Icon size={15} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[8px] text-zinc-600 uppercase font-black tracking-widest">{label}</p>
+                      <p className="text-[11px] text-white font-bold truncate mt-0.5">{val}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] text-gray-500 uppercase font-black tracking-widest">{label}</p>
-                    <p className="text-[11px] text-white font-bold truncate mt-0.5">{val}</p>
-                  </div>
-                </div>
+                </SpotlightCard>
               ))}
             </div>
 
-            <h4 className="text-[11px] text-[#C8102E] font-black uppercase tracking-[0.3em] mb-5 flex items-center gap-3">
-              <Settings2 size={14} /> Ficha Técnica
-            </h4>
-            <div className="grid grid-cols-2 gap-y-6 gap-x-4 mb-10 bg-black/40 p-5 rounded-3xl border border-white/5">
-              {[
-                { label: 'Año', val: car.ano, icon: Calendar },
-               { label: 'Kilometraje', val: `${car.km?.toLocaleString() || 0} KM`, icon: Gauge },
-                { label: 'Combustible', val: car.combustible, icon: Fuel },
-                { label: 'Transmisión', val: car.transmision, icon: Settings2 },
-                { label: 'Motor', val: car.motor || car.cilindrada || 'N/A', icon: Zap },
-                { label: 'Tracción', val: car.traccion || '4x2', icon: Activity },
-              ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className="p-2.5 bg-[#121212] rounded-xl text-[#E8B923] border border-red-900/20 shrink-0 shadow-inner">
-                    <item.icon size={16} />
-                  </div>
-                  <div className="min-w-0 pt-0.5">
-                    <p className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">{item.label}</p>
-                    <p className="text-sm text-white font-black truncate">{String(item.val)}</p>
-                  </div>
-                </div>
-              ))}
+            {/* Ficha Técnica — SpotlightCards + CountUp for KM */}
+            <div className="mb-5">
+              <h4 className="flex items-center gap-2 text-[9px] text-[#C8102E] font-black uppercase tracking-[0.35em] mb-3">
+                <div className="w-3 h-[2px] bg-[#C8102E] rounded-full" />
+                Ficha Técnica
+                <div className="flex-1 h-px bg-white/[0.05]" />
+              </h4>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { label: 'Año', icon: Calendar, countTo: undefined, val: String(car.ano) },
+                  { label: 'Kilometraje', icon: Gauge, countTo: car.km ?? 0, val: '' },
+                  { label: 'Combustible', icon: Fuel, countTo: undefined, val: car.combustible },
+                  { label: 'Transmisión', icon: Settings2, countTo: undefined, val: car.transmision },
+                  { label: 'Motor', icon: Zap, countTo: undefined, val: car.motor || car.cilindrada || 'N/A' },
+                  { label: 'Tracción', icon: Activity, countTo: undefined, val: car.traccion || '4x2' },
+                ] as { label: string; icon: React.ElementType; countTo?: number; val: string }[]).map((item, i) => (
+                  <SpotlightCard key={i}
+                    className="bg-[#0a0a0c] border border-white/[0.05] rounded-xl p-3 hover:border-[#E8B923]/20 transition-colors cursor-default"
+                    spotlightColor="rgba(232,185,35,0.1)"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className="p-1.5 bg-[#111] rounded-lg text-[#E8B923] border border-[#E8B923]/10 shrink-0 mt-0.5">
+                        <item.icon size={12} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[8px] text-zinc-600 uppercase font-black tracking-wider">{item.label}</p>
+                        <p className="text-sm text-white font-black mt-0.5 truncate">
+                          {item.countTo !== undefined
+                            ? <CountUp to={item.countTo} className="text-sm text-white font-black" fmt={n => `${n.toLocaleString('es-CL')} KM`} />
+                            : item.val
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </SpotlightCard>
+                ))}
+              </div>
             </div>
 
+            {/* Finance banner */}
             {car.financiable && (
-              <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#1a0505] to-black border border-[#C8102E]/40 p-6 sm:p-8 mb-10 hover:border-[#E8B923]/50 transition-all group">
-                <div className="absolute top-0 right-0 p-3 bg-gradient-to-r from-[#E8B923] to-[#DAA520] text-black text-[9px] font-black uppercase tracking-widest rounded-bl-2xl shadow-lg">Oportunidad</div>
-                <div className="absolute -right-10 -top-10 w-40 h-40 bg-[#C8102E]/20 blur-3xl rounded-full pointer-events-none group-hover:bg-[#E8B923]/20 transition-colors" />
-                
-                <p className="text-[10px] text-[#E8B923] font-black uppercase tracking-[0.3em] mb-2 relative z-10">Financiamiento Flexible</p>
-                <div className="flex items-end gap-2 mb-3 relative z-10">
-                  <span className="text-4xl sm:text-5xl font-black text-white italic drop-shadow-lg">24/48</span>
-                  <span className="text-sm font-bold text-gray-400 mb-1.5 uppercase tracking-widest">Cuotas</span>
-                </div>
-                <p className="text-xs text-gray-400 leading-relaxed relative z-10 mb-6">
-                  Llévatelo con un pie desde <span className="text-white font-black bg-[#C8102E]/20 px-2 py-0.5 rounded">{formatPrice(car.valorPie || car.precio * 0.2)}</span>. Evaluación express en 15 minutos.
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#110505] to-[#070709] border border-[#C8102E]/30 p-4 sm:p-5 mb-5 group hover:border-[#C8102E]/50 transition-all">
+                <div className="absolute top-3 right-3 bg-gradient-to-r from-[#E8B923] to-[#c9991f] text-black text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Oportunidad</div>
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#C8102E]/15 blur-2xl rounded-full pointer-events-none" />
+                <p className="text-[9px] text-[#E8B923] font-black uppercase tracking-[0.3em] mb-1 relative z-10">Financiamiento Flexible</p>
+                <p className="text-[1.6rem] font-black text-white italic mb-1 relative z-10 leading-none">
+                  24/48 <span className="text-sm font-bold text-zinc-500 not-italic">cuotas</span>
                 </p>
-                <button onClick={onOpenFinance} className="w-full py-4 bg-black hover:bg-zinc-900 border border-[#E8B923]/50 text-[#E8B923] text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all flex items-center justify-center gap-3 relative z-10 shadow-[0_0_20px_rgba(232,185,35,0.1)] hover:shadow-[0_0_30px_rgba(232,185,35,0.3)]">
-                  <Calculator size={16} /> Simular Crédito Automotriz
+                <p className="text-[11px] text-zinc-500 mb-3.5 relative z-10">
+                  Pie desde <span className="text-white font-bold">{formatPrice(car.valorPie || car.precio * 0.2)}</span>. Evaluación en 15 min.
+                </p>
+                <button onClick={onOpenFinance}
+                  className="w-full py-2.5 bg-transparent border border-[#E8B923]/35 hover:border-[#E8B923]/70 text-[#E8B923] text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all flex items-center justify-center gap-2 hover:bg-[#E8B923]/5 relative z-10">
+                  <Calculator size={13} /> Simular Crédito
                 </button>
               </div>
             )}
 
-            <div className="mb-10 flex flex-col gap-4">
-              <div className="p-5 bg-gradient-to-r from-black to-[#0a0a0a] rounded-3xl border border-white/5 flex items-center justify-between group cursor-pointer hover:border-red-900/40 transition-all shadow-lg">
-                <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 bg-white p-1.5 rounded-xl shrink-0 border-2 border-[#E8B923] shadow-[0_0_15px_rgba(232,185,35,0.3)] group-hover:scale-105 transition-transform">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`}
-                      alt="QR Code" className="w-full h-full" loading="lazy"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-white flex items-center gap-2 tracking-wide"><Smartphone size={16} className="text-[#C8102E]" /> Ficha Digital</p>
-                    <p className="text-[11px] text-gray-400 mt-1">Escanea para llevar en tu móvil</p>
-                  </div>
-                </div>
-                <div className="bg-[#C8102E]/10 p-3 rounded-2xl text-[#C8102E] group-hover:bg-[#C8102E] group-hover:text-white transition-all shadow-inner">
-                  <QrCode size={22} />
-                </div>
-              </div>
-
-              <PDFDownloadLink
-                document={<CarPdfDocument car={car} />}
-                fileName={`Ficha_LyonsActyon_${car.marca}_${car.modelo}.pdf`}
-                className="w-full"
+            {/* QR + PDF */}
+            <div className="flex flex-col gap-2 mb-5">
+              <SpotlightCard
+                className="bg-[#0a0a0c] border border-white/[0.05] rounded-2xl p-4 hover:border-[#E8B923]/20 transition-colors cursor-pointer group"
+                spotlightColor="rgba(232,185,35,0.08)"
               >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white p-1 rounded-lg shrink-0 border border-[#E8B923]/30 group-hover:border-[#E8B923]/60 transition-colors">
+                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(shareUrl)}`}
+                        alt="QR" className="w-full h-full" loading="lazy" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black text-white flex items-center gap-1.5"><Smartphone size={12} className="text-[#C8102E]" /> Ficha Digital</p>
+                      <p className="text-[10px] text-zinc-600 mt-0.5">Escanea en tu móvil</p>
+                    </div>
+                  </div>
+                  <QrCode size={16} className="text-zinc-700 group-hover:text-[#E8B923] transition-colors shrink-0" />
+                </div>
+              </SpotlightCard>
+
+              <PDFDownloadLink document={<CarPdfDocument car={car} />} fileName={`Ficha_LyonsActyon_${car.marca}_${car.modelo}.pdf`} className="w-full">
                 {/* @ts-ignore */}
                 {({ loading }) => (
-                  <button disabled={loading} className="w-full py-4 bg-[#121212] hover:bg-black disabled:bg-black disabled:cursor-not-allowed border border-red-900/30 text-white rounded-2xl flex items-center justify-center gap-3 transition-all font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] shadow-lg hover:shadow-[0_0_20px_rgba(200,16,46,0.3)] group">
+                  <button disabled={loading}
+                    className="w-full py-3 bg-[#0a0a0c] hover:bg-black disabled:cursor-not-allowed border border-white/[0.05] hover:border-[#C8102E]/30 text-white rounded-2xl flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-[0.2em] group">
                     {loading
-                      ? <><div className="w-5 h-5 border-2 border-[#E8B923] border-t-transparent rounded-full animate-spin" /><span>Generando PDF...</span></>
-                      : <><FileDown size={20} className="text-[#E8B923] group-hover:animate-bounce" /> Descargar Ficha Técnica PDF</>
+                      ? <><div className="w-4 h-4 border-2 border-[#E8B923] border-t-transparent rounded-full animate-spin" /> Generando...</>
+                      : <><FileDown size={14} className="text-[#E8B923] group-hover:translate-y-0.5 transition-transform" /> Descargar Ficha PDF</>
                     }
                   </button>
                 )}
               </PDFDownloadLink>
             </div>
 
-            <div className="mb-8 p-6 bg-black/40 border border-[#E8B923]/20 rounded-3xl relative overflow-hidden">
-               <div className="absolute right-0 bottom-0 w-32 h-32 bg-[#E8B923]/5 blur-3xl rounded-full pointer-events-none" />
-              <h4 className="text-[10px] text-[#E8B923] font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                <Eye size={14} className="text-[#E8B923]" /> Métricas de Interés
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#050505] p-4 rounded-2xl border border-white/5 shadow-inner">
-                  <p className="text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-1.5">Vistas totales</p>
-                  <p className="text-2xl font-black text-white">{car.vistas || 0}</p>
-                </div>
-                <div className="bg-gradient-to-br from-[#1a1a00] to-black p-4 rounded-2xl border border-[#E8B923]/30 shadow-inner">
-                  <p className="text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-1.5">Interesados</p>
-                  <p className="text-2xl font-black text-[#E8B923]">{car.interesados || 0}</p>
-                </div>
-              </div>
+            {/* Stats — CountUp */}
+            <div className="grid grid-cols-2 gap-2 mb-5">
+              <SpotlightCard className="bg-[#0a0a0c] border border-white/[0.05] rounded-2xl p-4 text-center" spotlightColor="rgba(255,255,255,0.06)">
+                <p className="text-[8px] text-zinc-600 uppercase tracking-widest font-black mb-2">Vistas</p>
+                <CountUp to={car.vistas || 0} className="text-2xl font-black text-white" />
+              </SpotlightCard>
+              <SpotlightCard className="bg-gradient-to-b from-[#1a1500]/50 to-[#0a0a0c] border border-[#E8B923]/20 rounded-2xl p-4 text-center" spotlightColor="rgba(232,185,35,0.1)">
+                <p className="text-[8px] text-zinc-600 uppercase tracking-widest font-black mb-2">Interesados</p>
+                <CountUp to={car.interesados || 0} className="text-2xl font-black text-[#E8B923]" />
+              </SpotlightCard>
             </div>
 
-            <div className="mb-4 bg-[#0a0a0a] p-6 rounded-3xl border border-white/5">
-              <h4 className="text-[10px] text-[#C8102E] font-black uppercase tracking-[0.3em] mb-3">Observaciones del experto</h4>
-              <p className="text-sm text-gray-300 leading-relaxed border-l-2 border-[#E8B923] pl-4 italic font-medium">
+            {/* Expert note */}
+            <div className="bg-[#080809] border border-white/[0.04] rounded-2xl p-4 mb-2">
+              <p className="text-[8px] text-[#C8102E] font-black uppercase tracking-[0.3em] mb-2.5 flex items-center gap-1.5">
+                <Eye size={11} /> Observaciones
+              </p>
+              <p className="text-xs text-zinc-400 leading-relaxed border-l-2 border-[#E8B923]/30 pl-3 italic">
                 "{car.obs || 'Vehículo en excelentes condiciones, listo para transferir.'}"
               </p>
             </div>
-            <div className="h-8" />
+            <div className="h-3" />
           </div>
 
-          <div className="shrink-0 w-full bg-black/90 backdrop-blur-2xl border-t border-red-900/50 p-5 sm:p-8 z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
-            <button onClick={() => onContact(car)}
-              className="w-full py-4 sm:py-5 bg-gradient-to-r from-[#C8102E] via-[#ff1a3c] to-[#C8102E] text-white font-black text-xs sm:text-sm uppercase tracking-[0.3em] rounded-2xl shadow-[0_0_30px_rgba(200,16,46,0.5)] hover:shadow-[0_0_50px_rgba(200,16,46,0.8)] transition-all flex items-center justify-center gap-3 relative overflow-hidden group"
+          {/* Sticky CTA */}
+          <div className="shrink-0 px-4 sm:px-5 py-4 bg-black/80 backdrop-blur-2xl border-t border-white/[0.06] shadow-[0_-8px_30px_rgba(0,0,0,0.6)]">
+            <motion.button whileTap={{ scale: 0.98 }} onClick={() => onContact(car)}
+              className="w-full py-4 sm:py-5 bg-gradient-to-r from-[#C8102E] via-[#e8102e] to-[#C8102E] text-white font-black text-xs sm:text-sm uppercase tracking-[0.3em] rounded-2xl shadow-[0_0_24px_rgba(200,16,46,0.4)] hover:shadow-[0_0_40px_rgba(200,16,46,0.65)] transition-all flex items-center justify-center gap-3 relative overflow-hidden group"
             >
-              {/* Animación de brillo barriendo el botón */}
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
-              <MessageCircle size={22} className="relative z-10 group-hover:scale-110 transition-transform" /> 
+              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
+              <MessageCircle size={20} className="relative z-10 group-hover:scale-110 transition-transform" />
               <span className="relative z-10">Contactar Vendedor</span>
-            </button>
-            <p className="text-center text-[9px] text-gray-500 mt-4 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-               <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> Respuesta promedio: 5 Minutos
+            </motion.button>
+            <p className="flex items-center justify-center gap-1.5 text-[9px] text-zinc-600 font-bold uppercase tracking-widest mt-3">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              Respuesta promedio: 5 minutos
             </p>
           </div>
         </div>
@@ -1658,6 +1787,10 @@ function App() {
         @keyframes gradient {
           0% { background-position: 0% 50%; }
           100% { background-position: 200% 50%; }
+        }
+        @keyframes shineText {
+          0% { background-position: 200% center; }
+          100% { background-position: -200% center; }
         }
       `}</style>
     </div>
