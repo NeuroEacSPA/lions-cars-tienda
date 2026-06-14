@@ -130,14 +130,15 @@ const AutoCarousel = ({ images, interval = 3000 }: { images: string[]; interval?
       <AnimatePresence mode="wait">
         <motion.img
           key={currentIndex}
-          src={images[currentIndex] || 'public/web1.png'}
+          src={images[currentIndex] || '/web1.jpg'}
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
           transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
           className="w-full h-full object-cover transform transition-transform duration-[10s] group-hover:scale-110"
           loading="lazy"
-          onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x600/121212/e8b923?text=No+disponible'; }}
+          decoding="async"
+          onError={e => { (e.target as HTMLImageElement).src = '/web3.jpg'; }}
         />
       </AnimatePresence>
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
@@ -1111,13 +1112,20 @@ function App() {
               transition={{ duration: 1.2, ease: 'easeOut' }}
               className="w-full"
             >
-              <img
-                src="/hero-main.jpg"
-                alt="Lyons & Actyon Automotriz"
-                className="w-full h-auto block"
-                fetchPriority="high"
-                onError={(e) => { e.currentTarget.src = '/web3.jpg'; }}
-              />
+              <picture>
+                <source srcSet="/hero-main.webp" type="image/webp" />
+                <source srcSet="/hero-main-opt.jpg" type="image/jpeg" />
+                <img
+                  src="/hero-main-opt.jpg"
+                  alt="Lyons & Actyon Automotriz — Autos Seminuevos Puerto Montt"
+                  className="w-full h-auto block"
+                  fetchPriority="high"
+                  decoding="async"
+                  width={1717}
+                  height={916}
+                  onError={(e) => { e.currentTarget.src = '/web3.jpg'; }}
+                />
+              </picture>
             </motion.div>
 
             {/* ── BOTÓN ADMIN — cubre solo el ≡ de la imagen ── */}
