@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   Car, Calendar, Gauge, Fuel, Settings2,
   Search, X, MessageCircle, ChevronRight,
@@ -7,13 +7,14 @@ import {
   QrCode, Smartphone, Calculator, Percent, CreditCard, Banknote, RefreshCw, FileDown, Eye
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, type Variants } from 'framer-motion';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { CarPdfDocument } from './components/CarPdf';
 import { useAuth } from './context/AuthContext';
 import { AuthModal } from './components/AuthModal';
 import { UserMenu } from './components/UserMenu';
 import SellerPortal from './components/SellerPortal';
+import { Background3D } from './components/Background3D';
 import { ConfirmModal } from './components/ConfirmModal';
 import { carService } from './services/api';
 import type { Vehiculo, Hotspot } from './services/api';
@@ -157,108 +158,133 @@ const AutoCarousel = ({ images, interval = 3000 }: { images: string[]; interval?
   );
 };
 
-// ── CAR CARD ──────────────────────────────────────────────────
+// ── CAR CARD ────────────────────────────────────────────
 const CarCard = ({ car, onClick, isFavorite, onToggleFavorite }: CarCardProps) => {
   if (!car) return null;
+
+  const cardRef = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const xSpring = useSpring(x, { stiffness: 150, damping: 20 });
+  const ySpring = useSpring(y, { stiffness: 150, damping: 20 });
+  const rotateX = useTransform(ySpring, [-0.5, 0.5], ['8deg', '-8deg']);
+  const rotateY = useTransform(xSpring, [-0.5, 0.5], ['-8deg', '8deg']);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    x.set((e.clientX - rect.left - rect.width / 2) / rect.width);
+    y.set((e.clientY - rect.top - rect.height / 2) / rect.height);
+  }, [x, y]);
+
+  const handleMouseLeave = useCallback(() => { x.set(0); y.set(0); }, [x, y]);
+
   const imageList = Array.isArray(car.imagenes) && car.imagenes.length > 0
     ? car.imagenes
     : car.imagen ? [car.imagen] : ['https://via.placeholder.com/800x600/121212/e8b923?text=Lions+Cars'];
 
   return (
-    <motion.div
-      layoutId={`card-${car.id}`}
-      whileHover={{ y: -12, scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      onClick={() => onClick(car)}
-      className="group bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a] border border-white/5 rounded-[24px] overflow-hidden cursor-pointer flex flex-col h-full relative shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0_20px_40px_rgba(200,16,46,0.2)]"
+    <div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ perspective: '1200px' }}
+      className="gradient-border-card"
     >
-      <div className="absolute top-3 left-3 z-20 flex flex-col gap-2">
-        <motion.span
-          initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-          className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl backdrop-blur-md border ${
-            car.tipoVenta === 'Propio'
-              ? 'bg-[#E8B923]/90 text-black border-[#FFE65F]/50'
-              : 'bg-black/60 text-zinc-100 border-white/10'
-          }`}
-        >{car.tipoVenta}</motion.span>
-        {car.estado && car.estado !== 'Disponible' && (
-          <span className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#C8102E]/90 text-white border border-red-500/50 backdrop-blur-md">
-            {car.estado}
-          </span>
-        )}
-      </div>
-
-      <motion.button
-        whileTap={{ scale: 0.8, rotate: -15 }}
-        onClick={e => { e.stopPropagation(); onToggleFavorite(e, car.id); }}
-        className="absolute top-3 right-3 z-30 p-2.5 rounded-xl bg-black/40 hover:bg-black/80 backdrop-blur-md text-white transition-all border border-white/10 shadow-lg"
+      <motion.div
+        layoutId={`card-${car.id}`}
+        style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
+        whileTap={{ scale: 0.97 }}
+        onClick={() => onClick(car)}
+        className="group relative bg-gradient-to-b from-[#171719] to-[#0a0a0c] rounded-[24px] overflow-hidden cursor-pointer flex flex-col h-full shadow-[0_15px_40px_rgba(0,0,0,0.6)] hover:shadow-[0_30px_60px_rgba(200,16,46,0.25)] transition-shadow duration-500 border border-white/[0.04]"
       >
-        <Heart size={18} style={{ fill: isFavorite ? RED_MAIN : 'none', color: isFavorite ? RED_MAIN : 'inherit' }} />
-      </motion.button>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(200,16,46,0.1)_0%,transparent_65%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0" />
+        <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-[#E8B923]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-20" />
+        <div className="absolute bottom-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-[#C8102E]/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-20" />
 
-      <div className="relative h-52 sm:h-64 overflow-hidden bg-zinc-900 border-b border-white/5">
-        <motion.div layoutId={`image-container-${car.id}`} className="w-full h-full">
-          <AutoCarousel images={imageList} />
-        </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent opacity-90" />
-        <div className="absolute bottom-4 left-5 pr-4">
-          <p className="text-[#E8B923] text-[10px] font-black uppercase tracking-[0.2em] mb-1 drop-shadow-md">{car.marca}</p>
-          <motion.p layoutId={`price-${car.id}`} className="text-white font-black text-2xl sm:text-3xl drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] tracking-tight">
-            {formatPrice(car.precio)}
-          </motion.p>
-        </div>
-      </div>
-
-      <div className="p-5 sm:p-6 flex flex-col flex-grow z-10">
-        <div className="mb-5">
-          <motion.h3 layoutId={`title-${car.id}`} className="text-zinc-100 font-bold text-lg sm:text-xl leading-tight group-hover:text-[#E8B923] transition-colors duration-300 line-clamp-1">
-            {car.modelo}
-          </motion.h3>
-          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-80 line-clamp-1">{car.version}</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-y-4 gap-x-3 text-[11px] sm:text-[12px] text-zinc-400 mb-6">
-          {[
-            { Icon: Calendar, val: car.ano },
-            { Icon: Gauge, val: `${car.km.toLocaleString()} km` },
-            { Icon: Fuel, val: car.combustible },
-            { Icon: Settings2, val: car.transmision },
-          ].map(({ Icon, val }, i) => (
-            <div key={i} className="flex items-center gap-2.5">
-              <div className="p-1.5 sm:p-2 rounded-lg bg-black/50 text-[#E8B923] border border-white/5 shrink-0 group-hover:border-[#E8B923]/30 transition-colors">
-                <Icon size={14} className="sm:w-[16px] sm:h-[16px]" />
-              </div>
-              <span className="font-semibold truncate">{val}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-auto pt-5 border-t border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-3 text-xs text-zinc-400">
-            <div className="w-8 h-8 rounded-xl bg-black flex items-center justify-center text-[#C8102E] font-black border border-white/10 shadow-inner">
-              {car.vendedor ? car.vendedor.charAt(0) : 'L'}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[8px] uppercase font-bold text-zinc-600 tracking-widest">Atendido por</span>
-              <span className="text-zinc-300 font-bold leading-none truncate max-w-[80px] sm:max-w-none">
-                {car.vendedor ? car.vendedor.split(' ')[0] : 'Lions'}
-              </span>
-            </div>
-          </div>
+        <div className="absolute top-3 left-3 z-30 flex flex-col gap-2">
           <motion.span
-            className="text-[#E8B923] text-[10px] sm:text-[11px] font-black uppercase flex items-center gap-1.5 bg-[#E8B923]/10 px-3 py-2 rounded-xl border border-[#E8B923]/20 group-hover:bg-[#E8B923] group-hover:text-black transition-all"
-            whileHover={{ x: 3 }}
-          >
-            Ficha <ChevronRight size={14} />
-          </motion.span>
+            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+            className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl backdrop-blur-md border ${
+              car.tipoVenta === 'Propio'
+                ? 'bg-[#E8B923]/90 text-black border-[#FFE65F]/50'
+                : 'bg-black/60 text-zinc-100 border-white/10'
+            }`}
+          >{car.tipoVenta}</motion.span>
+          {car.estado && car.estado !== 'Disponible' && (
+            <span className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#C8102E]/90 text-white border border-red-500/50 backdrop-blur-md">
+              {car.estado}
+            </span>
+          )}
         </div>
-      </div>
-      
-      {/* Resplandor animado en el borde superior al hacer hover */}
-      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-[#E8B923] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      <div className="absolute inset-0 pointer-events-none rounded-[24px] border-2 border-transparent group-hover:border-[#C8102E]/30 transition-all duration-500" />
-    </motion.div>
+
+        <motion.button
+          whileTap={{ scale: 0.8, rotate: -15 }}
+          onClick={e => { e.stopPropagation(); onToggleFavorite(e, car.id); }}
+          className="absolute top-3 right-3 z-30 p-2.5 rounded-xl bg-black/40 hover:bg-black/80 backdrop-blur-md text-white transition-all border border-white/10 shadow-lg"
+        >
+          <Heart size={18} style={{ fill: isFavorite ? RED_MAIN : 'none', color: isFavorite ? RED_MAIN : 'inherit' }} />
+        </motion.button>
+
+        <div className="relative h-52 sm:h-64 overflow-hidden bg-black border-b border-white/[0.04]">
+          <motion.div layoutId={`image-container-${car.id}`} className="w-full h-full">
+            <AutoCarousel images={imageList} />
+          </motion.div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0c] via-[#0a0a0c]/20 to-transparent" />
+          <div className="absolute bottom-4 left-5 pr-4">
+            <p className="font-display text-[#E8B923] text-[10px] font-black uppercase tracking-[0.28em] mb-1 drop-shadow-md">{car.marca}</p>
+            <motion.p layoutId={`price-${car.id}`} className="font-display text-white font-black text-2xl sm:text-3xl drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] tracking-tight">
+              {formatPrice(car.precio)}
+            </motion.p>
+          </div>
+        </div>
+
+        <div className="p-5 sm:p-6 flex flex-col flex-grow relative z-10">
+          <div className="mb-5">
+            <motion.h3 layoutId={`title-${car.id}`} className="font-display text-zinc-100 font-bold text-lg sm:text-xl leading-tight group-hover:text-[#E8B923] transition-colors duration-300 line-clamp-1">
+              {car.modelo}
+            </motion.h3>
+            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-80 line-clamp-1">{car.version}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-y-4 gap-x-3 text-[11px] sm:text-[12px] text-zinc-400 mb-6">
+            {[
+              { Icon: Calendar, val: car.ano },
+              { Icon: Gauge, val: `${car.km.toLocaleString()} km` },
+              { Icon: Fuel, val: car.combustible },
+              { Icon: Settings2, val: car.transmision },
+            ].map(({ Icon, val }, i) => (
+              <div key={i} className="flex items-center gap-2.5">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-black/60 text-[#E8B923] border border-white/[0.05] shrink-0 group-hover:border-[#E8B923]/25 group-hover:bg-[#E8B923]/5 transition-all shadow-inner">
+                  <Icon size={14} className="sm:w-[16px] sm:h-[16px]" />
+                </div>
+                <span className="font-semibold truncate">{val}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-auto pt-5 border-t border-white/[0.05] flex items-center justify-between">
+            <div className="flex items-center gap-3 text-xs text-zinc-400">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#1c1c20] to-black flex items-center justify-center text-[#C8102E] font-black border border-white/10 shadow-inner font-display text-sm">
+                {car.vendedor ? car.vendedor.charAt(0) : 'L'}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[8px] uppercase font-bold text-zinc-600 tracking-widest">Atendido por</span>
+                <span className="text-zinc-300 font-semibold leading-none truncate max-w-[80px] sm:max-w-none">
+                  {car.vendedor ? car.vendedor.split(' ')[0] : 'Lions'}
+                </span>
+              </div>
+            </div>
+            <motion.span
+              className="text-[#E8B923] text-[10px] sm:text-[11px] font-black uppercase flex items-center gap-1.5 bg-[#E8B923]/[0.07] px-3 py-2 rounded-xl border border-[#E8B923]/20 group-hover:bg-[#E8B923] group-hover:text-black transition-all duration-300 tracking-wider"
+              whileHover={{ x: 2 }}
+            >
+              Ver Ficha <ChevronRight size={14} />
+            </motion.span>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   );
 };
 
@@ -918,7 +944,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-100 font-sans selection:bg-[#C8102E]/40 overflow-x-hidden">
+    <div className="min-h-screen bg-[#050507] text-gray-100 font-body selection:bg-[#C8102E]/40 overflow-x-hidden">
 
       <AnimatePresence>
         {modalLoading && <ModalLoading />}
@@ -952,7 +978,7 @@ function App() {
               onClick={() => { setCurrentView('catalog'); navigate('/'); }}
               whileHover={{ scale: 1.02 }}
             >
-              <span className="text-2xl sm:text-3xl font-black italic text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] tracking-tighter">LIONS<span className="text-[#E8B923]">CARS</span></span>
+              <span className="font-display text-2xl sm:text-3xl font-black italic text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] tracking-tighter">LIONS<span className="text-[#E8B923]">CARS</span></span>
             </motion.div>
             <div className="flex items-center gap-3 sm:gap-5">
               {isAuthenticated ? (
@@ -1014,6 +1040,7 @@ function App() {
             {/* SUBTLE GLOWS */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(200,16,46,0.15),_transparent_40%)]" />
 
+            <Background3D />
             {/* FLOATING SPARKLES ANIMATION */}
             <Sparkles />
             
@@ -1032,7 +1059,7 @@ function App() {
                   </span>
                 </motion.div>
                 
-                <motion.h1 variants={fadeInUpSpring} className="text-5xl sm:text-6xl md:text-7xl font-black italic leading-[0.95] text-white mb-6 drop-shadow-2xl">
+                <motion.h1 variants={fadeInUpSpring} className="font-display text-5xl sm:text-6xl md:text-7xl font-black italic leading-[0.95] text-white mb-6 drop-shadow-2xl">
                   <span className="text-transparent bg-clip-text bg-[linear-gradient(110deg,#E8B923,45%,#FFE65F,55%,#E8B923)] bg-[length:200%_auto] animate-[gradient_3s_linear_infinite]">LIONS</span>
                   <br />
                   <span className="text-[#C8102E] drop-shadow-[0_0_20px_rgba(200,16,46,0.5)]">AUTOMOTRIZ</span>
