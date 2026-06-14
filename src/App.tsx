@@ -870,7 +870,7 @@ const CarModal = ({
                 </div>
               </SpotlightCard>
 
-              <PDFDownloadLink document={<CarPdfDocument car={car} />} fileName={`Ficha_LyonsActyon_${car.marca}_${car.modelo}.pdf`} className="w-full">
+              <PDFDownloadLink document={<CarPdfDocument car={car} baseUrl={window.location.origin} />} fileName={`Ficha_LyonsActyon_${car.marca}_${car.modelo}.pdf`} className="w-full">
                 {/* @ts-ignore */}
                 {({ loading }) => (
                   <button disabled={loading}
