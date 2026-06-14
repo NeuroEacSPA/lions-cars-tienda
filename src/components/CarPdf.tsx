@@ -1,23 +1,25 @@
 import { Page, Text, View, Document, StyleSheet, Image, Link } from '@react-pdf/renderer';
 import type { Vehiculo } from '../services/api';
 
-// --- ESTILOS PREMIUM (Lions Cars V3) ---
+const RED = '#C8102E';
+
+// --- ESTILOS PREMIUM (Lions Cars V4 — rojo) ---
 const styles = StyleSheet.create({
   page: { flexDirection: 'column', backgroundColor: '#FFFFFF', padding: 0, fontFamily: 'Helvetica' },
-  
+
   // HEADER
-  header: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#0a0a0a', 
+    backgroundColor: '#0a0a0a',
     paddingHorizontal: 30,
     paddingVertical: 20,
     height: 85
   },
   brandTitle: { fontSize: 22, fontWeight: 'black', color: '#FFFFFF', textTransform: 'uppercase' },
-  brandSubtitle: { fontSize: 8, color: '#C9A84C', letterSpacing: 3, marginTop: 2, textTransform: 'uppercase' },
-  
+  brandSubtitle: { fontSize: 8, color: RED, letterSpacing: 3, marginTop: 2, textTransform: 'uppercase' },
+
   qrContainer: { backgroundColor: '#fff', padding: 3, borderRadius: 4 },
   qrImage: { width: 50, height: 50 },
 
@@ -28,7 +30,7 @@ const styles = StyleSheet.create({
   heroContainer: { flexDirection: 'row', marginBottom: 25, height: 210 },
   imageWrapper: { width: '58%', height: '100%', position: 'relative' },
   heroImage: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 },
-  
+
   // Stamp de Estado (Marca de Agua)
   statusStamp: {
     position: 'absolute',
@@ -48,27 +50,27 @@ const styles = StyleSheet.create({
   stampText: { color: '#fff', fontWeight: 'black', fontSize: 14, textTransform: 'uppercase', letterSpacing: 2 },
 
   heroInfo: { width: '42%', paddingLeft: 25, justifyContent: 'center' },
-  
-  carBrand: { fontSize: 10, color: '#C9A84C', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 },
+
+  carBrand: { fontSize: 10, color: RED, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 },
   carModel: { fontSize: 26, fontWeight: 'heavy', color: '#000', lineHeight: 1, marginBottom: 5 },
   carVersion: { fontSize: 11, color: '#555', marginBottom: 15 },
-  
-  priceBadge: { backgroundColor: '#C9A84C', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 4, alignSelf: 'flex-start', shadowOpacity: 0.5 },
-  priceText: { fontSize: 20, fontWeight: 'bold', color: '#000' },
-  priceLabel: { fontSize: 7, color: '#000', textTransform: 'uppercase', marginBottom: 1 },
+
+  priceBadge: { backgroundColor: RED, paddingVertical: 8, paddingHorizontal: 15, borderRadius: 4, alignSelf: 'flex-start' },
+  priceText: { fontSize: 20, fontWeight: 'bold', color: '#FFFFFF' },
+  priceLabel: { fontSize: 7, color: '#FFFFFF', textTransform: 'uppercase', marginBottom: 1 },
 
   // COLUMNAS
   rowContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   colLeft: { width: '48%' },
   colRight: { width: '48%' },
 
-  sectionTitle: { 
-    fontSize: 10, 
-    fontWeight: 'bold', 
-    color: '#000', 
-    textTransform: 'uppercase', 
-    borderBottomWidth: 2, 
-    borderBottomColor: '#C9A84C', 
+  sectionTitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#000',
+    textTransform: 'uppercase',
+    borderBottomWidth: 2,
+    borderBottomColor: RED,
     paddingBottom: 4,
     marginBottom: 10,
     marginTop: 15
@@ -81,7 +83,7 @@ const styles = StyleSheet.create({
   listValue: { width: '60%', fontSize: 9, color: '#000', fontWeight: 'bold' },
 
   // FINANCE
-  financeBox: { backgroundColor: '#fffbe6', borderRadius: 6, padding: 12, borderLeftWidth: 4, borderLeftColor: '#C9A84C' },
+  financeBox: { backgroundColor: '#fff5f5', borderRadius: 6, padding: 12, borderLeftWidth: 4, borderLeftColor: RED },
   financeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
   financeText: { fontSize: 9, color: '#555' },
   financeValue: { fontSize: 9, fontWeight: 'bold', color: '#000' },
@@ -91,13 +93,13 @@ const styles = StyleSheet.create({
   galleryImg: { width: '32%', height: '100%', objectFit: 'cover', borderRadius: 4, backgroundColor: '#eee' },
 
   // FOOTER
-  footer: { 
-    position: 'absolute', 
-    bottom: 0, 
-    left: 0, 
-    right: 0, 
-    height: 45, 
-    backgroundColor: '#1a1a1a', 
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 45,
+    backgroundColor: '#1a1a1a',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -125,9 +127,15 @@ const ZebraRow = ({ label, value, index }: { label: string, value: string | numb
     </View>
 );
 
-export const CarPdfDocument = ({ car }: { car: Vehiculo }) => {
-  const mainImage = car.imagenes?.[0] || car.imagen;
-  const galleryImages = car.imagenes?.slice(1, 4) || [];
+export const CarPdfDocument = ({ car, baseUrl = '' }: { car: Vehiculo; baseUrl?: string }) => {
+  const toAbs = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const mainImage = toAbs(car.imagenes?.[0] || car.imagen || '');
+  const galleryImages = (car.imagenes?.slice(1, 4) || []).map(toAbs).filter(Boolean);
   const isAvailable = car.estado === 'Disponible';
 
   // Datos para la tabla izquierda
@@ -211,8 +219,8 @@ export const CarPdfDocument = ({ car }: { car: Vehiculo }) => {
                     
                     {car.financiable ? (
                         <View style={styles.financeBox}>
-                            <View style={{flexDirection:'row', justifyContent:'space-between', marginBottom:8, borderBottomWidth:1, borderBottomColor:'#C9A84C', paddingBottom:4}}>
-                                <Text style={{fontSize:9, fontWeight:'bold', color:'#C9A84C'}}>PLAN FLEXIBLE</Text>
+                            <View style={{flexDirection:'row', justifyContent:'space-between', marginBottom:8, borderBottomWidth:1, borderBottomColor:RED, paddingBottom:4}}>
+                                <Text style={{fontSize:9, fontWeight:'bold', color:RED}}>PLAN FLEXIBLE</Text>
                                 <Text style={{fontSize:9, fontWeight:'bold', color:'#000'}}>PIE 20%</Text>
                             </View>
                             <View style={styles.financeRow}>
@@ -262,7 +270,7 @@ export const CarPdfDocument = ({ car }: { car: Vehiculo }) => {
         <View style={styles.footer}>
             <Text style={styles.footerText}>Av. Gabriela Mistral 925, Puerto Montt | </Text>
             <Link src="https://wa.me/56958016208" style={{ textDecoration: 'none' }}>
-                <Text style={[styles.footerText, { color: '#C9A84C', fontWeight: 'bold' }]}>WhatsApp: +56 9 5801 6208</Text>
+                <Text style={[styles.footerText, { color: RED, fontWeight: 'bold' }]}>WhatsApp: +56 9 5801 6208</Text>
             </Link>
             <Text style={styles.footerText}> | www.lionscars.cl</Text>
         </View>
