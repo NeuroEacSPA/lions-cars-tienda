@@ -13,6 +13,7 @@ import { CarPdfDocument } from './components/CarPdf';
 import { useAuth } from './context/AuthContext';
 // AuthModal loaded lazily below
 import { UserMenu } from './components/UserMenu';
+import { TasarVehiculo } from './components/TasarVehiculo';
 // SellerPortal loaded lazily below
 // Background3D loaded lazily below
 import { ConfirmModal } from './components/ConfirmModal';
@@ -283,6 +284,96 @@ const CarCard = ({ car, onClick, isFavorite, onToggleFavorite }: CarCardProps) =
         </div>
       </motion.div>
     </div>
+  );
+};
+
+// ── GENERIC FINANCE MODAL (sin auto específico) ───────────────
+const GenericFinanceModal = ({ onClose }: { onClose: () => void }) => {
+  const [precio, setPrecio] = useState(12000000);
+  const [piePercent, setPiePercent] = useState(20);
+  const [months, setMonths] = useState(24);
+  const tasaMensual = 0.022;
+  const montoPie = Math.round(precio * (piePercent / 100));
+  const montoCredito = precio - montoPie;
+  const cuota = Math.round((montoCredito * tasaMensual) / (1 - Math.pow(1 + tasaMensual, -months)));
+  const costoTotal = cuota * months + montoPie;
+  return (
+    <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 overflow-y-auto"
+      onClick={onClose}>
+      <motion.div initial={{ scale:0.9, y:20 }} animate={{ scale:1, y:0 }}
+        onClick={e => e.stopPropagation()}
+        className="w-full max-w-md bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a] border border-red-900/40 rounded-[2rem] p-6 sm:p-8 shadow-[0_0_50px_rgba(200,16,46,0.3)] relative overflow-hidden my-auto">
+        <div className="absolute top-0 right-0 p-16 bg-[#C8102E]/20 blur-[80px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 left-0 p-16 bg-[#E8B923]/10 blur-[80px] rounded-full pointer-events-none" />
+        <div className="flex justify-between items-center mb-6 relative z-10">
+          <h3 className="text-xl font-black italic text-white flex items-center gap-3">
+            <Calculator size={24} className="text-[#E8B923]" /> Simular Crédito
+          </h3>
+          <button onClick={onClose} className="p-2.5 bg-black rounded-full border border-white/10 hover:border-white/30 transition-colors">
+            <X size={18} className="text-gray-400" />
+          </button>
+        </div>
+        <div className="space-y-5 relative z-10">
+          {/* Precio del vehículo */}
+          <div>
+            <div className="flex justify-between text-xs mb-3 font-bold">
+              <span className="text-gray-400">Valor del vehículo</span>
+              <span className="text-[#E8B923] font-mono text-sm">{formatPrice(precio)}</span>
+            </div>
+            <input type="range" min={3000000} max={40000000} step={500000} value={precio}
+              onChange={e => setPrecio(parseInt(e.target.value))}
+              className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#C8102E]" />
+            <div className="flex justify-between text-[10px] text-zinc-500 mt-1 font-mono"><span>$3M</span><span>$40M</span></div>
+          </div>
+          {/* Pie */}
+          <div>
+            <div className="flex justify-between text-xs mb-3 font-bold">
+              <span className="text-gray-400 flex items-center gap-1.5"><Percent size={13} className="text-[#E8B923]" /> Pie ({piePercent}%)</span>
+              <span className="text-white font-mono">{formatPrice(montoPie)}</span>
+            </div>
+            <input type="range" min={20} max={50} step={5} value={piePercent}
+              onChange={e => setPiePercent(parseInt(e.target.value))}
+              className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#C8102E]" />
+            <div className="flex justify-between text-[10px] text-zinc-500 mt-1 font-mono"><span>20%</span><span>50%</span></div>
+          </div>
+          {/* Plazo */}
+          <div>
+            <p className="text-xs font-bold text-gray-400 mb-3 flex items-center gap-1.5"><Calendar size={13} className="text-[#E8B923]" /> Plazo (Meses)</p>
+            <div className="grid grid-cols-4 gap-2">
+              {[12, 24, 36, 48].map(m => (
+                <button key={m} onClick={() => setMonths(m)}
+                  className={`py-2.5 rounded-xl text-xs font-bold transition-all border ${months===m ? 'bg-[#C8102E] border-[#C8102E] text-white shadow-[0_0_15px_rgba(200,16,46,0.5)]' : 'bg-black border-white/5 text-gray-400 hover:border-[#E8B923]/50'}`}
+                >{m}</button>
+              ))}
+            </div>
+          </div>
+          {/* Resultado */}
+          <div className="bg-black/60 p-6 rounded-[2rem] border border-red-900/30 text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#C8102E]/5 to-transparent pointer-events-none" />
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.3em] mb-2 relative z-10">Cuota Mensual Estimada</p>
+            <p className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#E8B923] to-white tracking-tighter relative z-10">{formatPrice(cuota)}</p>
+            <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/5 relative z-10">
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Costo Total Est.</span>
+              <span className="text-xs font-mono text-zinc-300 font-bold">{formatPrice(costoTotal)}</span>
+            </div>
+          </div>
+          {/* Acciones */}
+          <div className="flex gap-3">
+            <a href={`https://api.whatsapp.com/send?phone=56958016208&text=Hola! Me interesa financiar un vehículo de ${formatPrice(precio)} con cuota de ${formatPrice(cuota)}/mes a ${months} meses`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex-1 bg-gradient-to-r from-[#E8B923] to-[#DAA520] text-black py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(232,185,35,0.3)]">
+              <Banknote size={18} /> Solicitar
+            </a>
+            <button onClick={onClose}
+              className="flex-1 bg-black text-white border border-[#C8102E]/50 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#C8102E]/10 transition-colors flex items-center justify-center gap-2">
+              <X size={16} /> Cerrar
+            </button>
+          </div>
+          <p className="text-[9px] text-zinc-600 text-center">*Simulación referencial. Tasa mensual 2.2%. Sujeto a evaluación crediticia.</p>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
@@ -766,6 +857,43 @@ const Footer = () => (
   </footer>
 );
 
+
+// ── FILTER SECTION ────────────────────────────────────────────────────────────
+const FilterSection = ({
+  title, icon, children, defaultOpen = true
+}: {
+  title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean
+}) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-white/[0.05] last:border-0">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between py-3.5 group">
+        <span className="flex items-center gap-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500 group-hover:text-zinc-200 transition-colors">
+          <span className="text-[#C8102E]">{icon}</span>
+          {title}
+        </span>
+        <motion.div animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronRight size={13} className="text-zinc-700" />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div className="pb-4">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 // ── APP PRINCIPAL ─────────────────────────────────────────────
 function App() {
   const [stock, setStock] = useState<Vehiculo[]>([]);
@@ -787,6 +915,7 @@ function App() {
   const [currentView, setCurrentView] = useState<'catalog' | 'seller'>('catalog');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showGenericFinance, setShowGenericFinance] = useState(false);
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; idToDelete: number | null }>({ isOpen: false, idToDelete: null });
 
@@ -921,6 +1050,26 @@ function App() {
       && (f.neumaticos === 'Todos' || car.neumaticos === f.neumaticos);
   }), [stock, selectedSeller, searchTerm, filters]);
 
+  const activeFilters = useMemo(() => {
+    const active: { key: string; label: string; onRemove: () => void }[] = [];
+    if (filters.marca !== 'Todas') active.push({ key: 'marca', label: filters.marca, onRemove: () => setFilters(f => ({ ...f, marca: 'Todas' })) });
+    if (filters.combustible !== 'Todos') active.push({ key: 'comb', label: filters.combustible, onRemove: () => setFilters(f => ({ ...f, combustible: 'Todos' })) });
+    if (filters.transmision !== 'Todas') active.push({ key: 'trans', label: filters.transmision, onRemove: () => setFilters(f => ({ ...f, transmision: 'Todas' })) });
+    if (filters.traccion !== 'Todas') active.push({ key: 'trac', label: filters.traccion, onRemove: () => setFilters(f => ({ ...f, traccion: 'Todas' })) });
+    if (filters.tipoVenta !== 'Todos') active.push({ key: 'tipo', label: filters.tipoVenta, onRemove: () => setFilters(f => ({ ...f, tipoVenta: 'Todos' })) });
+    if (filters.financiable !== 'Todos') active.push({ key: 'fin', label: 'Financiable', onRemove: () => setFilters(f => ({ ...f, financiable: 'Todos' })) });
+    if (filters.aire !== 'Todos') active.push({ key: 'aire', label: 'A/C', onRemove: () => setFilters(f => ({ ...f, aire: 'Todos' })) });
+    if (filters.duenosMax) active.push({ key: 'duenos', label: '1 dueño', onRemove: () => setFilters(f => ({ ...f, duenosMax: '' })) });
+    if (filters.priceMin) active.push({ key: 'pmin', label: `≥ ${formatPrice(+filters.priceMin)}`, onRemove: () => setFilters(f => ({ ...f, priceMin: '' })) });
+    if (filters.priceMax) active.push({ key: 'pmax', label: `≤ ${formatPrice(+filters.priceMax)}`, onRemove: () => setFilters(f => ({ ...f, priceMax: '' })) });
+    if (filters.yearMin) active.push({ key: 'ymin', label: `≥ ${filters.yearMin}`, onRemove: () => setFilters(f => ({ ...f, yearMin: '' })) });
+    if (filters.yearMax) active.push({ key: 'ymax', label: `≤ ${filters.yearMax}`, onRemove: () => setFilters(f => ({ ...f, yearMax: '' })) });
+    if (filters.kmMax) active.push({ key: 'km', label: `≤ ${(+filters.kmMax).toLocaleString()} km`, onRemove: () => setFilters(f => ({ ...f, kmMax: '' })) });
+    if (selectedSeller !== 'Todos') active.push({ key: 'seller', label: selectedSeller, onRemove: () => setSelectedSeller('Todos') });
+    return active;
+  }, [filters, selectedSeller]);
+
+
   const toggleFavorite = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
     setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
@@ -949,148 +1098,111 @@ function App() {
       </AnimatePresence>
 
       <div className="relative">
-        <motion.header
-          initial={{ y: -100 }} animate={{ y: 0 }}
-          transition={{ type: 'spring', stiffness: 120, damping: 20 }}
-          className="sticky top-0 z-50 bg-black/80 backdrop-blur-3xl border-b border-red-900/30 shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
-        >
-          <div className="w-full bg-[#0a0a0a] border-b border-white/5 hidden sm:block">
-            <div className="w-full px-6 py-2">
-              <div className="flex items-center justify-between text-xs font-bold tracking-wider">
-                <div className="hidden lg:flex items-center gap-2 text-[#E8B923]">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-                  <span>Av. Gabriela Mistral 925, Puerto Montt, Chile</span>
-                </div>
-                <div className="flex items-center gap-4 ml-auto">
-                  <a href="https://wa.me/56958016208" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-zinc-400 hover:text-[#E8B923] transition-colors">
-                    <MessageCircle size={14} className="text-[#C8102E]" /><span>+56 9 58016208</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full px-4 sm:px-8 h-20 sm:h-24 flex items-center justify-between">
-            <motion.div
-              className="flex items-center gap-3 cursor-pointer group"
-              onClick={() => { setCurrentView('catalog'); navigate('/'); }}
-              whileHover={{ scale: 1.02 }}
-            >
-              <span className="font-display text-2xl sm:text-3xl font-black italic text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] tracking-tighter">LYONS <span className="text-[#E8B923]">&amp; ACTYON</span></span>
-            </motion.div>
-            <div className="flex items-center gap-3 sm:gap-5">
-              {isAuthenticated ? (
-                <>
-                  {user?.role === 'admin' && (
-                    <motion.button whileHover={{ scale: 1.05 }}
-                      onClick={() => setCurrentView(currentView === 'catalog' ? 'seller' : 'catalog')}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(200,16,46,0.3)] ${currentView === 'catalog' ? 'bg-gradient-to-r from-[#C8102E] to-[#990000] text-white border border-[#ff3333]/30' : 'bg-black text-[#E8B923] border border-[#E8B923]/50 hover:bg-[#E8B923]/10'}`}
-                    >
-                      {currentView === 'catalog'
-                        ? <><LayoutDashboard size={16} /><span className="hidden sm:inline">Panel Admin</span></>
-                        : <><ArrowLeft size={16} /><span className="hidden sm:inline">Volver</span></>
-                      }
-                    </motion.button>
-                  )}
-                  <UserMenu onAdminClick={() => setCurrentView('seller')} />
-                </>
-              ) : (
-                <motion.button whileHover={{ scale: 1.05 }} onClick={() => setShowAuthModal(true)}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-[0.2em] bg-gradient-to-r from-[#C8102E] to-red-800 text-white shadow-[0_0_25px_rgba(200,16,46,0.5)] border border-[#ff4d4d]/30 relative overflow-hidden group"
-                >
-                   <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
-                  <User size={16} className="relative z-10" />
-                  <span className="hidden sm:inline relative z-10">Acceso VIP</span>
-                  <span className="sm:hidden relative z-10">Login</span>
-                </motion.button>
-              )}
-            </div>
-          </div>
-        </motion.header>
-
         <Suspense fallback={null}>{showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}</Suspense>
 
         {currentView === 'catalog' && (
-          <section className="relative min-h-[85vh] w-full overflow-hidden flex items-center">
+          <section className="relative w-full overflow-hidden">
+            {/* Imagen completa sin overlays */}
             <motion.div
-              initial={{ scale: 1.06, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 2, ease: 'easeOut' }}
-              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1.2, ease: 'easeOut' }}
+              className="w-full"
             >
               <img
-                src="/web3.jpg"
+                src="/hero-main.jpg"
                 alt="Lyons & Actyon Automotriz"
-                className="w-full h-full object-cover object-right md:object-center"
+                className="w-full h-auto block"
                 fetchPriority="high"
-                onError={(e) => {
-                  e.currentTarget.src = 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&q=80&w=2069';
-                }}
+                onError={(e) => { e.currentTarget.src = '/web3.jpg'; }}
               />
             </motion.div>
 
-            <div className="absolute inset-0 bg-gradient-to-r from-[#030305] via-[#030305]/85 md:via-[#030305]/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#030305] via-transparent to-[#030305]/40" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(200,16,46,0.18),transparent_55%)]" />
-
-            <Suspense fallback={null}><Background3D /></Suspense>
-            <Sparkles />
-
-            <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-8 py-28 lg:py-0 lg:min-h-[85vh] flex flex-col justify-center">
-              <motion.div variants={containerStagger} initial="hidden" animate="show" className="max-w-3xl">
-
-                <motion.div variants={fadeInUpSpring} className="flex items-center gap-3 mb-8">
-                  <div className="flex items-center gap-2.5 bg-[#C8102E]/10 border border-[#C8102E]/25 px-5 py-2.5 rounded-full backdrop-blur-sm">
-                    <span className="w-1.5 h-1.5 bg-[#E8B923] rounded-full animate-pulse shadow-[0_0_6px_#E8B923]" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.45em] text-[#E8B923]">Premium Automotriz · Puerto Montt</span>
+            {/* ── BOTÓN ADMIN — cubre solo el ≡ de la imagen ── */}
+            <div className="absolute z-30 hidden lg:block" style={{ top:'2.5%', right:'1.2%', width:'3.5%', aspectRatio:'1' }}>
+              {isAuthenticated ? (
+                <div className="relative w-full h-full">
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={() => setCurrentView(currentView === 'catalog' ? 'seller' : 'catalog')}
+                      className="w-full h-full bg-transparent cursor-pointer"
+                      title={currentView === 'catalog' ? 'Panel Admin' : 'Volver'}
+                    />
+                  )}
+                  <div className="absolute top-full right-0 mt-1">
+                    <UserMenu onAdminClick={() => setCurrentView('seller')} />
                   </div>
-                </motion.div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="w-full h-full bg-transparent cursor-pointer"
+                  title="Acceso Admin"
+                />
+              )}
+            </div>
 
-                <motion.h1 variants={fadeInUpSpring} className="font-display font-black leading-[0.85] tracking-tight mb-3">
-                  <span className="text-shimmer-gold text-7xl sm:text-8xl md:text-[9rem] block">LYONS</span>
-                  <span className="text-white/20 text-3xl sm:text-4xl md:text-5xl block leading-none my-2">&amp;</span>
-                  <span className="text-white text-6xl sm:text-7xl md:text-8xl block">ACTYON</span>
-                </motion.h1>
+            {/* ── BOTONES SUPERPUESTOS — coords medidas en píxeles de la imagen 1717x916 ── */}
+            {/* VER INVENTARIO — px: x=65–304 (3.79%–17.71%), y=531–637 (57.97%–69.54%) */}
+            <button
+              onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior:'smooth' })}
+              className="absolute z-30 cursor-pointer bg-transparent"
+              style={{ left:'3.79%', top:'57.97%', width:'13.92%', height:'11.57%' }}
+              aria-label="Ver Inventario"
+            />
 
-                <motion.p variants={fadeInUpSpring} className="font-display text-[#C8102E] text-lg sm:text-xl font-black uppercase tracking-[0.5em] mb-8 drop-shadow-[0_0_25px_rgba(200,16,46,0.6)]">
-                  AUTOMOTRIZ
-                </motion.p>
+            {/* FINANCIAMIENTO — px: x=352–513 (20.50%–29.88%), y=598–685 (65.28%–74.78%) */}
+            <button
+              onClick={() => setShowGenericFinance(true)}
+              className="absolute z-30 cursor-pointer bg-transparent"
+              style={{ left:'20.50%', top:'65.28%', width:'9.38%', height:'9.50%' }}
+              aria-label="Financiamiento"
+            />
 
-                <motion.p variants={fadeInUpSpring} className="text-zinc-400 text-sm md:text-base mb-10 leading-relaxed max-w-lg">
-                  Vehículos seminuevos rigurosamente inspeccionados. Financiamiento flexible y transferencia express.{' '}
-                  <span className="text-white font-semibold">Tu próximo auto, a tu medida.</span>
-                </motion.p>
+            {/* ── WIDGET DESKTOP ── */}
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
+              className="absolute top-1/2 -translate-y-1/2 right-[2%] z-20 hidden lg:block w-[330px] xl:w-[360px]"
+            >
+              <TasarVehiculo />
+            </motion.div>
 
-                <motion.div variants={fadeInUpSpring} className="flex flex-wrap gap-4 mb-14">
-                  <button className="group px-8 py-4 bg-gradient-to-r from-[#C8102E] to-[#990000] text-white font-black uppercase text-xs tracking-[0.25em] rounded-xl shadow-[0_0_30px_rgba(200,16,46,0.35)] hover:shadow-[0_0_50px_rgba(200,16,46,0.7)] hover:scale-[1.03] transition-all relative overflow-hidden">
-                    <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
-                    <span className="relative z-10">Ver Catálogo</span>
-                  </button>
-                  <button className="px-8 py-4 bg-white/[0.04] backdrop-blur-md border border-[#E8B923]/35 text-[#E8B923] font-black uppercase text-xs tracking-[0.25em] rounded-xl hover:bg-[#E8B923]/10 hover:border-[#E8B923]/60 transition-all">
-                    Simular Crédito
-                  </button>
-                </motion.div>
+            {/* ── MOBILE: widget debajo de la imagen ── */}
+            <div className="lg:hidden w-full bg-[#030305]">
+              <div className="mx-4 h-px bg-white/[0.05] mt-1 mb-4" />
+              <div className="px-4 pb-6">
+                <TasarVehiculo />
+              </div>
+            </div>
 
-                <motion.div variants={fadeInUpSpring} className="flex flex-wrap gap-10 pt-8 border-t border-white/[0.07]">
-                  {[
-                    { val: String(stock.length || '—'), label: 'Autos en stock' },
-                    { val: '100%', label: 'Inspección garantizada' },
-                    { val: '15 min', label: 'Respuesta promedio' },
-                  ].map(({ val, label }) => (
-                    <div key={label} className="flex flex-col gap-1">
-                      <span className="font-display text-3xl font-black text-white tracking-tight">{val}</span>
-                      <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em]">{label}</span>
-                    </div>
-                  ))}
-                </motion.div>
-              </motion.div>
+            {/* ── BOTÓN ADMIN MOBILE — cubre solo el ≡ ── */}
+            <div className="lg:hidden absolute z-30" style={{ top:'2.5%', right:'1.2%', width:'11%', aspectRatio:'1' }}>
+              {isAuthenticated ? (
+                <div className="relative w-full h-full">
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={() => setCurrentView(currentView === 'catalog' ? 'seller' : 'catalog')}
+                      className="w-full h-full bg-transparent cursor-pointer"
+                      title="Admin"
+                    />
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="w-full h-full bg-transparent cursor-pointer"
+                  title="Admin"
+                />
+              )}
             </div>
           </section>
         )}
       </div>
 
 
-      <main className="w-full px-4 sm:px-6 pb-20 min-h-[600px] mt-12">
+      <main id="catalog" className="w-full px-4 sm:px-6 pb-20 min-h-[600px] mt-12">
         <AnimatePresence mode="wait">
           {currentView === 'catalog' ? (
             <motion.div key="catalog-view" variants={pageTransitionVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col md:flex-row gap-8 max-w-[1600px] mx-auto">
@@ -1100,77 +1212,282 @@ function App() {
                 <Filter size={18} /> {showMobileFilters ? 'Ocultar Filtros' : 'Filtros Avanzados'}
               </button>
 
-              <aside className={`w-full md:w-[320px] lg:w-[350px] flex-shrink-0 ${showMobileFilters ? 'block' : 'hidden md:block'}`}>
-                <div className="sticky top-32">
-                  <div className="bg-[#0a0a0a]/90 backdrop-blur-2xl p-6 rounded-[2rem] border border-red-900/30 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-                    <h3 className="text-sm font-black uppercase tracking-[0.2em] mb-6 flex items-center gap-3 text-white border-b border-white/5 pb-4">
-                      <Filter size={18} className="text-[#C8102E]" /> Refinar Búsqueda
-                    </h3>
-                    
-                    <div className="relative mb-5">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#C8102E]" size={16} />
-                      <input type="text" placeholder="Buscar modelo o año..." className="w-full bg-[#121212] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-xs font-bold text-white focus:border-[#E8B923] focus:shadow-[0_0_15px_rgba(232,185,35,0.2)] transition-all outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <aside className={`w-full md:w-[300px] lg:w-[330px] xl:w-[360px] flex-shrink-0 ${showMobileFilters ? 'block' : 'hidden md:block'}`}>
+                <div className="sticky top-32 max-h-[calc(100vh-9rem)] overflow-y-auto scrollbar-hide">
+                  <div className="bg-[#0a0a0c]/95 backdrop-blur-2xl rounded-[1.75rem] border border-white/[0.05] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
+
+                    {/* Header */}
+                    <div className="px-5 pt-5 pb-4 border-b border-white/[0.05] flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-[#C8102E]/10 rounded-xl border border-[#C8102E]/15">
+                          <Filter size={15} className="text-[#C8102E]" />
+                        </div>
+                        <div>
+                          <h3 className="font-display text-sm font-black text-white">Filtros</h3>
+                          <p className="text-[9px] text-zinc-600 uppercase tracking-widest">{filteredStock.length} resultados</p>
+                        </div>
+                      </div>
+                      <AnimatePresence>
+                        {activeFilters.length > 0 && (
+                          <motion.button initial={{ opacity:0, scale:0.8 }} animate={{ opacity:1, scale:1 }} exit={{ opacity:0, scale:0.8 }}
+                            onClick={clearAllFilters}
+                            className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-500 hover:text-[#C8102E] transition-colors">
+                            <X size={11} /> Limpiar ({activeFilters.length})
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    
-                    <div className="space-y-5">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest pl-1">Marca</label>
-                          <select value={filters.marca} onChange={e => setFilters({ ...filters, marca: e.target.value })} className="w-full bg-[#121212] border border-white/10 rounded-xl py-3 px-3 text-xs font-bold text-white cursor-pointer focus:border-[#E8B923] outline-none transition-all">
-                            {marcas.map(m => <option key={m} value={m}>{m}</option>)}
-                          </select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest pl-1">Asesor</label>
-                          <select value={selectedSeller} onChange={e => setSelectedSeller(e.target.value)} className="w-full bg-[#121212] border border-white/10 rounded-xl py-3 px-3 text-xs font-bold text-white cursor-pointer focus:border-[#E8B923] outline-none transition-all">
-                            {sellers.map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                        </div>
+
+                    {/* Active chips */}
+                    <AnimatePresence>
+                      {activeFilters.length > 0 && (
+                        <motion.div initial={{ height:0, opacity:0 }} animate={{ height:'auto', opacity:1 }} exit={{ height:0, opacity:0 }}
+                          style={{ overflow:'hidden' }}>
+                          <div className="px-4 pt-3 pb-2 flex flex-wrap gap-1.5">
+                            {activeFilters.map(f => (
+                              <motion.button key={f.key}
+                                initial={{ scale:0.8, opacity:0 }} animate={{ scale:1, opacity:1 }} exit={{ scale:0.8, opacity:0 }}
+                                onClick={f.onRemove}
+                                className="flex items-center gap-1 px-2.5 py-1 bg-[#C8102E]/10 border border-[#C8102E]/20 rounded-full text-[10px] font-bold text-[#E8B923] hover:bg-[#C8102E]/20 transition-all">
+                                {f.label} <X size={9} className="text-zinc-500" />
+                              </motion.button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div className="px-4 pt-3 pb-3 space-y-0">
+
+                      {/* Búsqueda */}
+                      <div className="relative mb-4">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600" size={13} />
+                        <input type="text" placeholder="Marca, modelo, año..."
+                          className="w-full bg-white/[0.03] border border-white/[0.07] rounded-xl py-2.5 pl-9 pr-8 text-xs text-white placeholder:text-zinc-700 focus:border-[#E8B923]/40 focus:bg-white/[0.05] outline-none transition-all"
+                          value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                        {searchTerm && (
+                          <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors">
+                            <X size={13} />
+                          </button>
+                        )}
                       </div>
 
-                      <div className="space-y-1.5">
-                         <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest pl-1">Rango de Precio</label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <input type="number" placeholder="Mínimo" value={filters.priceMin} onChange={e => setFilters({ ...filters, priceMin: e.target.value })} className="bg-[#121212] border border-white/10 rounded-xl py-3 px-3 text-xs font-bold text-white focus:border-[#E8B923] outline-none transition-all" />
-                          <input type="number" placeholder="Máximo" value={filters.priceMax} onChange={e => setFilters({ ...filters, priceMax: e.target.value })} className="bg-[#121212] border border-white/10 rounded-xl py-3 px-3 text-xs font-bold text-white focus:border-[#E8B923] outline-none transition-all" />
+                      {/* Vehículo */}
+                      <FilterSection title="Vehículo" icon={<Car size={13} />}>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest block mb-1.5">Marca</label>
+                            <select value={filters.marca} onChange={e => setFilters({ ...filters, marca: e.target.value })}
+                              className="w-full bg-[#111113] border border-white/[0.07] rounded-xl py-2.5 px-3 text-xs font-semibold text-white focus:border-[#E8B923]/40 outline-none transition-all">
+                              {marcas.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest block mb-1.5">Asesor</label>
+                            <select value={selectedSeller} onChange={e => setSelectedSeller(e.target.value)}
+                              className="w-full bg-[#111113] border border-white/[0.07] rounded-xl py-2.5 px-3 text-xs font-semibold text-white focus:border-[#E8B923]/40 outline-none transition-all">
+                              {sellers.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest block mb-2">Tipo de venta</label>
+                            <div className="flex gap-1.5">
+                              {['Todos', 'Propio', 'Consignado'].map(v => (
+                                <button key={v} onClick={() => setFilters({ ...filters, tipoVenta: v })}
+                                  className={`flex-1 py-2 rounded-xl text-[10px] font-bold transition-all ${filters.tipoVenta === v ? 'bg-[#C8102E] text-white shadow-[0_0_12px_rgba(200,16,46,0.35)]' : 'bg-white/[0.04] text-zinc-500 hover:text-white border border-white/[0.06]'}`}>
+                                  {v === 'Todos' ? 'Todos' : v}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      </FilterSection>
 
-                      <div className="pt-4 border-t border-white/5">
-                        <label className="text-[9px] font-black text-[#E8B923] uppercase tracking-[0.2em] block mb-4">Especificaciones</label>
-                        <div className="grid grid-cols-2 gap-4">
-                          {[
-                            { label: '4x4', field: 'traccion', onVal: '4x4', offVal: 'Todas' },
-                            { label: 'A/C', field: 'aire', onVal: 'Si', offVal: 'Todos' },
-                            { label: 'Financ.', field: 'financiable', onVal: 'Si', offVal: 'Todos' },
-                            { label: 'Propio', field: 'tipoVenta', onVal: 'Propio', offVal: 'Todos' },
-                          ].map(({ label, field, onVal, offVal }) => (
-                            <label key={label} className="flex items-center gap-3 cursor-pointer group">
-                              <div className="relative flex items-center justify-center w-5 h-5">
-                                <input type="checkbox"
-                                  checked={filters[field as keyof typeof filters] === onVal}
-                                  onChange={e => setFilters({ ...filters, [field]: e.target.checked ? onVal : offVal })}
-                                  className="peer appearance-none w-5 h-5 border-2 border-zinc-700 rounded bg-[#121212] checked:bg-[#C8102E] checked:border-[#C8102E] transition-all cursor-pointer"
-                                />
-                                <svg className="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" viewBox="0 0 14 10" fill="none">
-                                  <path d="M1 5L5 9L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
+                      {/* Precio */}
+                      <FilterSection title="Precio (CLP)" icon={<Banknote size={13} />}>
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1.5">Desde</label>
+                              <input type="number" placeholder="0" value={filters.priceMin}
+                                onChange={e => setFilters({ ...filters, priceMin: e.target.value })}
+                                className="w-full bg-[#111113] border border-white/[0.07] rounded-xl py-2.5 px-3 text-xs text-white placeholder:text-zinc-700 focus:border-[#E8B923]/40 outline-none transition-all" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1.5">Hasta</label>
+                              <input type="number" placeholder="∞" value={filters.priceMax}
+                                onChange={e => setFilters({ ...filters, priceMax: e.target.value })}
+                                className="w-full bg-[#111113] border border-white/[0.07] rounded-xl py-2.5 px-3 text-xs text-white placeholder:text-zinc-700 focus:border-[#E8B923]/40 outline-none transition-all" />
+                            </div>
+                          </div>
+                          {(filters.priceMin || filters.priceMax) && (
+                            <p className="text-[10px] text-zinc-500 font-mono text-center tabular-nums">
+                              {filters.priceMin ? formatPrice(+filters.priceMin) : '$0'} → {filters.priceMax ? formatPrice(+filters.priceMax) : 'Sin límite'}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap gap-1.5">
+                            {[[5000000,'5M'],[8000000,'8M'],[12000000,'12M'],[20000000,'20M']].map(([v,l]) => (
+                              <button key={v} onClick={() => setFilters({ ...filters, priceMax: String(v) })}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${filters.priceMax === String(v) ? 'bg-[#C8102E]/15 text-[#E8B923] border border-[#C8102E]/35' : 'bg-white/[0.03] text-zinc-600 hover:text-zinc-300 border border-white/[0.05]'}`}>
+                                ≤ {l}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </FilterSection>
+
+                      {/* Año */}
+                      <FilterSection title="Año" icon={<Calendar size={13} />}>
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1.5">Desde</label>
+                              <input type="number" placeholder="2015" min="2000" max="2026" value={filters.yearMin}
+                                onChange={e => setFilters({ ...filters, yearMin: e.target.value })}
+                                className="w-full bg-[#111113] border border-white/[0.07] rounded-xl py-2.5 px-3 text-xs text-white placeholder:text-zinc-700 focus:border-[#E8B923]/40 outline-none transition-all" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1.5">Hasta</label>
+                              <input type="number" placeholder="2026" min="2000" max="2026" value={filters.yearMax}
+                                onChange={e => setFilters({ ...filters, yearMax: e.target.value })}
+                                className="w-full bg-[#111113] border border-white/[0.07] rounded-xl py-2.5 px-3 text-xs text-white placeholder:text-zinc-700 focus:border-[#E8B923]/40 outline-none transition-all" />
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[2020,2021,2022,2023,2024].map(y => (
+                              <button key={y} onClick={() => setFilters({ ...filters, yearMin: String(y), yearMax: '' })}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${filters.yearMin === String(y) ? 'bg-[#C8102E]/15 text-[#E8B923] border border-[#C8102E]/35' : 'bg-white/[0.03] text-zinc-600 hover:text-zinc-300 border border-white/[0.05]'}`}>
+                                {y}+
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </FilterSection>
+
+                      {/* Kilometraje */}
+                      <FilterSection title="Kilometraje" icon={<Gauge size={13} />} defaultOpen={false}>
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1.5">Desde</label>
+                              <input type="number" placeholder="0" value={filters.kmMin}
+                                onChange={e => setFilters({ ...filters, kmMin: e.target.value })}
+                                className="w-full bg-[#111113] border border-white/[0.07] rounded-xl py-2.5 px-3 text-xs text-white placeholder:text-zinc-700 focus:border-[#E8B923]/40 outline-none transition-all" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1.5">Hasta</label>
+                              <input type="number" placeholder="∞" value={filters.kmMax}
+                                onChange={e => setFilters({ ...filters, kmMax: e.target.value })}
+                                className="w-full bg-[#111113] border border-white/[0.07] rounded-xl py-2.5 px-3 text-xs text-white placeholder:text-zinc-700 focus:border-[#E8B923]/40 outline-none transition-all" />
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[[50000,'50K'],[100000,'100K'],[150000,'150K'],[200000,'200K']].map(([v,l]) => (
+                              <button key={v} onClick={() => setFilters({ ...filters, kmMax: String(v) })}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${filters.kmMax === String(v) ? 'bg-[#C8102E]/15 text-[#E8B923] border border-[#C8102E]/35' : 'bg-white/[0.03] text-zinc-600 hover:text-zinc-300 border border-white/[0.05]'}`}>
+                                ≤ {l} km
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </FilterSection>
+
+                      {/* Motor */}
+                      <FilterSection title="Motor" icon={<Zap size={13} />} defaultOpen={false}>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-2">Combustible</label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {[['Todos','Todos'],['Gasolina','Bencina'],['Diesel','Diésel'],['Híbrido','Híbrido'],['Eléctrico','Eléctrico'],['Gas','Gas']].map(([v,l]) => (
+                                <button key={v} onClick={() => setFilters({ ...filters, combustible: v })}
+                                  className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all ${filters.combustible === v ? 'bg-[#C8102E] text-white shadow-[0_0_10px_rgba(200,16,46,0.3)]' : 'bg-white/[0.04] text-zinc-500 hover:text-white border border-white/[0.06]'}`}>
+                                  {l}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-2">Transmisión</label>
+                            <div className="flex gap-1.5">
+                              {[['Todas','Todos'],['Mecánica','Manual'],['Automática','Automático']].map(([v,l]) => (
+                                <button key={v} onClick={() => setFilters({ ...filters, transmision: v })}
+                                  className={`flex-1 py-2 rounded-xl text-[10px] font-bold transition-all ${filters.transmision === v ? 'bg-[#C8102E] text-white shadow-[0_0_10px_rgba(200,16,46,0.3)]' : 'bg-white/[0.04] text-zinc-500 hover:text-white border border-white/[0.06]'}`}>
+                                  {l}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-2">Tracción</label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {[['Todas','Todos'],['4x2','4×2'],['4x4','4×4'],['AWD','AWD'],['FWD','FWD']].map(([v,l]) => (
+                                <button key={v} onClick={() => setFilters({ ...filters, traccion: v })}
+                                  className={`flex-1 py-2 rounded-xl text-[10px] font-bold transition-all ${filters.traccion === v ? 'bg-[#C8102E] text-white shadow-[0_0_10px_rgba(200,16,46,0.3)]' : 'bg-white/[0.04] text-zinc-500 hover:text-white border border-white/[0.06]'}`}>
+                                  {l}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </FilterSection>
+
+                      {/* Características */}
+                      <FilterSection title="Características" icon={<Settings size={13} />} defaultOpen={false}>
+                        <div className="space-y-3">
+                          {([
+                            { label: 'Aire Acondicionado', sub: 'A/C incluido', field: 'aire', onVal: 'Si', offVal: 'Todos' },
+                            { label: 'Financiable', sub: 'Con opción de crédito', field: 'financiable', onVal: 'Si', offVal: 'Todos' },
+                            { label: '1 Solo Dueño', sub: 'Primer propietario', field: 'duenosMax', onVal: '1', offVal: '' },
+                          ] as const).map(({ label, sub, field, onVal, offVal }) => {
+                            const isActive = filters[field as keyof typeof filters] === onVal;
+                            return (
+                              <div key={field} className="flex items-center justify-between py-0.5">
+                                <div>
+                                  <p className="text-xs font-semibold text-zinc-300">{label}</p>
+                                  <p className="text-[9px] text-zinc-600 mt-0.5">{sub}</p>
+                                </div>
+                                <button
+                                  onClick={() => setFilters({ ...filters, [field]: isActive ? offVal : onVal })}
+                                  className={`relative w-11 h-6 rounded-full transition-all duration-300 ${isActive ? 'bg-[#C8102E] shadow-[0_0_12px_rgba(200,16,46,0.4)]' : 'bg-white/[0.08]'}`}
+                                >
+                                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-300 ${isActive ? 'left-6' : 'left-1'}`} />
+                                </button>
                               </div>
-                              <span className="text-xs font-bold text-gray-400 group-hover:text-white transition-colors">{label}</span>
-                            </label>
-                          ))}
+                            );
+                          })}
+                          <div className="flex items-center justify-between py-0.5 pt-1 border-t border-white/[0.05]">
+                            <div>
+                              <p className="text-xs font-semibold text-zinc-300">Neumáticos</p>
+                              <p className="text-[9px] text-zinc-600 mt-0.5">Estado de los neumáticos</p>
+                            </div>
+                            <select value={filters.neumaticos} onChange={e => setFilters({ ...filters, neumaticos: e.target.value })}
+                              className="bg-[#111113] border border-white/[0.07] rounded-xl py-1.5 px-2.5 text-[10px] font-bold text-white focus:border-[#E8B923]/40 outline-none w-28">
+                              <option value="Todos">Todos</option>
+                              <option value="Nuevos">Nuevos</option>
+                              <option value="Buenos">Buenos</option>
+                              <option value="Medios">Medios</option>
+                            </select>
+                          </div>
                         </div>
+                      </FilterSection>
+
+                      {/* Reset */}
+                      <div className="pt-3 pb-1">
+                        <button onClick={clearAllFilters}
+                          className={`w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
+                            activeFilters.length > 0
+                              ? 'bg-[#C8102E]/10 border border-[#C8102E]/25 text-[#C8102E] hover:bg-[#C8102E]/20'
+                              : 'bg-white/[0.03] border border-white/[0.05] text-zinc-700 cursor-default'
+                          }`}>
+                          <X size={11} /> Restablecer{activeFilters.length > 0 ? ` (${activeFilters.length})` : ''}
+                        </button>
                       </div>
-                      
-                      <button onClick={clearAllFilters} className="w-full mt-6 bg-transparent border border-[#555] text-gray-400 font-bold uppercase tracking-widest py-3.5 rounded-xl transition-all text-[10px] flex items-center justify-center gap-2 hover:border-white hover:text-white">
-                        Restablecer Filtros
-                      </button>
                     </div>
                   </div>
                 </div>
               </aside>
 
-              <div className="flex-grow">
+              <div className="flex-grow min-w-0">
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-32">
                     <div className="w-12 h-12 border-4 border-[#1a1a1a] border-t-[#C8102E] rounded-full animate-spin mb-6 shadow-[0_0_20px_rgba(200,16,46,0.3)]" />
@@ -1259,6 +1576,7 @@ function App() {
 
       <AnimatePresence>
         {financeCar && <FinanceModal car={financeCar} onClose={() => setFinanceCar(null)} />}
+        <AnimatePresence>{showGenericFinance && <GenericFinanceModal onClose={() => setShowGenericFinance(false)} />}</AnimatePresence>
       </AnimatePresence>
 
       <ConfirmModal
