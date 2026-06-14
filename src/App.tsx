@@ -531,6 +531,38 @@ const BlurText = ({ text, className = '', wordDelay = 60 }: { text: string; clas
   </span>
 );
 
+// Converts image URLs to base64 data URLs so react-pdf can embed them
+// without relying on its internal fetch (which fails due to CORS from the web worker)
+function useBase64Images(urls: string[]): string[] {
+  const [b64, setB64] = useState<string[]>([]);
+  const key = urls.join('|');
+  useEffect(() => {
+    if (!urls.length) return;
+    let cancelled = false;
+    Promise.all(
+      urls.map(async (url) => {
+        try {
+          const abs = url.startsWith('http') ? url : `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`;
+          const res = await fetch(abs);
+          if (!res.ok) return url;
+          const blob = await res.blob();
+          return await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch {
+          return url;
+        }
+      })
+    ).then(results => { if (!cancelled) setB64(results); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return b64;
+}
+
 // ── CAR MODAL ─────────────────────────────────────────────────────────────────
 const CarModal = ({
   car, onClose, onContact, onOpenFinance
@@ -551,6 +583,12 @@ const CarModal = ({
   const interiorImages = images.slice(splitIndex);
   const activeImages = activeTab === 'INTERIOR' && interiorImages.length > 0 ? interiorImages : exteriorImages;
   const currentImage = activeImages[currentImgIdx] || images[0];
+
+  // Pre-fetch top 4 images as base64 so react-pdf can embed them without CORS issues
+  const pdfBase64 = useBase64Images(images.slice(0, 4));
+  const pdfCar = pdfBase64.length > 0
+    ? { ...car, imagenes: pdfBase64, imagen: pdfBase64[0] }
+    : car;
 
   const shareUrl = car.slug ? `https://lyonsactyon.cl/autos/${car.slug}` : `https://lyonsactyon.cl/vehiculo/${car.id}`;
 
@@ -870,17 +908,20 @@ const CarModal = ({
                 </div>
               </SpotlightCard>
 
-              <PDFDownloadLink document={<CarPdfDocument car={car} baseUrl={window.location.origin} />} fileName={`Ficha_LyonsActyon_${car.marca}_${car.modelo}.pdf`} className="w-full">
+              <PDFDownloadLink document={<CarPdfDocument car={pdfCar} baseUrl={window.location.origin} />} fileName={`Ficha_LyonsActyon_${car.marca}_${car.modelo}.pdf`} className="w-full">
                 {/* @ts-ignore */}
-                {({ loading }) => (
-                  <button disabled={loading}
-                    className="w-full py-3 bg-[#0a0a0c] hover:bg-black disabled:cursor-not-allowed border border-white/[0.05] hover:border-[#C8102E]/30 text-white rounded-2xl flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-[0.2em] group">
-                    {loading
-                      ? <><div className="w-4 h-4 border-2 border-[#E8B923] border-t-transparent rounded-full animate-spin" /> Generando...</>
-                      : <><FileDown size={14} className="text-[#E8B923] group-hover:translate-y-0.5 transition-transform" /> Descargar Ficha PDF</>
-                    }
-                  </button>
-                )}
+                {({ loading: pdfLoading }) => {
+                  const busy = pdfLoading || pdfBase64.length === 0;
+                  return (
+                    <button disabled={busy}
+                      className="w-full py-3 bg-[#0a0a0c] hover:bg-black disabled:cursor-not-allowed border border-white/[0.05] hover:border-[#C8102E]/30 text-white rounded-2xl flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-[0.2em] group">
+                      {busy
+                        ? <><div className="w-4 h-4 border-2 border-[#E8B923] border-t-transparent rounded-full animate-spin" /> {pdfBase64.length === 0 ? 'Cargando imágenes...' : 'Generando...'}</>
+                        : <><FileDown size={14} className="text-[#E8B923] group-hover:translate-y-0.5 transition-transform" /> Descargar Ficha PDF</>
+                      }
+                    </button>
+                  );
+                }}
               </PDFDownloadLink>
             </div>
 
