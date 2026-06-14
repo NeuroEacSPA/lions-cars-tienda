@@ -28,8 +28,8 @@ const styles = StyleSheet.create({
 
   // HERO SECTION (Foto + Stamp)
   heroContainer: { flexDirection: 'row', marginBottom: 25, height: 210 },
-  imageWrapper: { width: '58%', height: '100%', position: 'relative' },
-  heroImage: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 },
+  imageWrapper: { width: '58%', height: '100%', position: 'relative', backgroundColor: '#f4f4f4', borderRadius: 6 },
+  heroImage: { width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 },
 
   // Stamp de Estado (Marca de Agua)
   statusStamp: {
@@ -89,8 +89,8 @@ const styles = StyleSheet.create({
   financeValue: { fontSize: 9, fontWeight: 'bold', color: '#000' },
 
   // GALLERY
-  galleryRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 25, height: 85 },
-  galleryImg: { width: '32%', height: '100%', objectFit: 'cover', borderRadius: 4, backgroundColor: '#eee' },
+  galleryRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 25, height: 110 },
+  galleryImg: { width: '32%', height: '100%', objectFit: 'contain', borderRadius: 4, backgroundColor: '#f4f4f4' },
 
   // FOOTER
   footer: {
@@ -156,7 +156,7 @@ export const CarPdfDocument = ({ car, baseUrl = '' }: { car: Vehiculo; baseUrl?:
         <View style={styles.header}>
             <View>
                 <Text style={styles.brandTitle}>LIONS &amp; ACTYON</Text>
-                <Text style={styles.brandSubtitle}>AUTOMOTRIZ • Puerto Montt</Text>
+                <Text style={styles.brandSubtitle}>AUTOMOTRIZ • Puerto Varas</Text>
             </View>
             <Link src={`https://lionscars.cl/auto/${car.id}`} style={styles.qrContainer}>
                 <Image 
@@ -268,7 +268,7 @@ export const CarPdfDocument = ({ car, baseUrl = '' }: { car: Vehiculo; baseUrl?:
 
         {/* FOOTER CLICKABLE */}
         <View style={styles.footer}>
-            <Text style={styles.footerText}>Av. Gabriela Mistral 925, Puerto Montt | </Text>
+            <Text style={styles.footerText}>Parcelación San Alfonso, Puerto Varas | </Text>
             <Link src="https://wa.me/56958016208" style={{ textDecoration: 'none' }}>
                 <Text style={[styles.footerText, { color: RED, fontWeight: 'bold' }]}>WhatsApp: +56 9 5801 6208</Text>
             </Link>

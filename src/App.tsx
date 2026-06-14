@@ -1297,7 +1297,7 @@ function App() {
                 <source srcSet="/hero-main-opt.jpg" type="image/jpeg" />
                 <img
                   src="/hero-main-opt.jpg"
-                  alt="Lyons & Actyon Automotriz — Autos Seminuevos Puerto Montt"
+                  alt="Lyons & Actyon Automotriz — Autos Seminuevos Puerto Varas"
                   className="w-full h-auto block"
                   fetchPriority="high"
                   decoding="async"
