@@ -1169,11 +1169,36 @@ function App() {
               <TasarVehiculo />
             </motion.div>
 
-            {/* ── MOBILE: widget debajo de la imagen ── */}
-            <div className="lg:hidden w-full bg-[#030305]">
-              <div className="mx-4 h-px bg-white/[0.05] mt-1 mb-4" />
-              <div className="px-4 pb-6">
-                <TasarVehiculo />
+            {/* ── MOBILE: CTAs + widget debajo de la imagen ── */}
+            <div className="lg:hidden w-full bg-gradient-to-b from-[#030305] to-[#050507]">
+              <div className="mx-4 h-px bg-white/[0.05] mt-1" />
+
+              {/* Botones de acción visibles en móvil */}
+              <div className="px-4 pt-5 pb-4 flex gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="flex-1 py-4 bg-gradient-to-r from-[#C8102E] via-[#e8102e] to-[#C8102E] text-white font-black text-[11px] uppercase tracking-[0.18em] rounded-2xl shadow-[0_0_24px_rgba(200,16,46,0.45)] flex items-center justify-center gap-2 relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_2s_infinite]" />
+                  <Car size={16} className="relative z-10 shrink-0" />
+                  <span className="relative z-10">Ver Inventario</span>
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowGenericFinance(true)}
+                  className="flex-1 py-4 bg-black/60 border-2 border-[#E8B923] text-[#E8B923] font-black text-[11px] uppercase tracking-[0.18em] rounded-2xl shadow-[0_0_16px_rgba(232,185,35,0.2)] flex items-center justify-center gap-2"
+                >
+                  <Calculator size={16} className="shrink-0" />
+                  Financiar
+                </motion.button>
+              </div>
+
+              {/* Widget Tasar */}
+              <div className="px-4 pb-8">
+                <div className="rounded-2xl overflow-hidden border border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+                  <TasarVehiculo />
+                </div>
               </div>
             </div>
 
@@ -1202,7 +1227,7 @@ function App() {
       </div>
 
 
-      <main id="catalog" className="w-full px-4 sm:px-6 pb-20 min-h-[600px] mt-12">
+      <main id="catalog" className="w-full px-4 sm:px-6 pb-20 min-h-[600px] mt-4 sm:mt-10">
         <AnimatePresence mode="wait">
           {currentView === 'catalog' ? (
             <motion.div key="catalog-view" variants={pageTransitionVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col md:flex-row gap-8 max-w-[1600px] mx-auto">
@@ -1213,7 +1238,7 @@ function App() {
               </button>
 
               <aside className={`w-full md:w-[300px] lg:w-[330px] xl:w-[360px] flex-shrink-0 ${showMobileFilters ? 'block' : 'hidden md:block'}`}>
-                <div className="sticky top-32 max-h-[calc(100vh-9rem)] overflow-y-auto scrollbar-hide">
+                <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto scrollbar-hide">
                   <div className="bg-[#0a0a0c]/95 backdrop-blur-2xl rounded-[1.75rem] border border-white/[0.05] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
 
                     {/* Header */}
