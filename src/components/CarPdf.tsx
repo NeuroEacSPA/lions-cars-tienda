@@ -155,8 +155,8 @@ export const CarPdfDocument = ({ car, baseUrl = '' }: { car: Vehiculo; baseUrl?:
         {/* HEADER */}
         <View style={styles.header}>
             <View>
-                <Text style={styles.brandTitle}>LIONS CARS</Text>
-                <Text style={styles.brandSubtitle}>Catálogo Profesional</Text>
+                <Text style={styles.brandTitle}>LIONS &amp; ACTYON</Text>
+                <Text style={styles.brandSubtitle}>AUTOMOTRIZ • Puerto Montt</Text>
             </View>
             <Link src={`https://lionscars.cl/auto/${car.id}`} style={styles.qrContainer}>
                 <Image 
