@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import {
   Car, Calendar, Gauge, Fuel, Settings2,
   Search, X, MessageCircle, ChevronRight,
@@ -11,11 +11,15 @@ import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, type 
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { CarPdfDocument } from './components/CarPdf';
 import { useAuth } from './context/AuthContext';
-import { AuthModal } from './components/AuthModal';
+// AuthModal loaded lazily below
 import { UserMenu } from './components/UserMenu';
-import SellerPortal from './components/SellerPortal';
-import { Background3D } from './components/Background3D';
+// SellerPortal loaded lazily below
+// Background3D loaded lazily below
 import { ConfirmModal } from './components/ConfirmModal';
+
+const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
+const SellerPortal = lazy(() => import('./components/SellerPortal'));
+const Background3D = lazy(() => import('./components/Background3D').then(m => ({ default: m.Background3D })));
 import { carService } from './services/api';
 import type { Vehiculo, Hotspot } from './services/api';
 
@@ -52,29 +56,23 @@ const pageTransitionVariants: Variants = {
 const Sparkles = () => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  const particles = useMemo(() => [...Array(12)].map((_, i) => ({
+    id: i,
+    left: `${Math.random() * 100}%`,
+    top: `${Math.random() * 100}%`,
+    dur: Math.random() * 4 + 4,
+    delay: Math.random() * 4,
+  })), []);
   if (!mounted) return null;
-
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-      {[...Array(25)].map((_, i) => (
+      {particles.map(p => (
         <motion.div
-          key={i}
-          className="absolute w-1 h-1 bg-[#E8B923] rounded-full shadow-[0_0_10px_#E8B923]"
-          initial={{
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
-            opacity: Math.random() * 0.5 + 0.1,
-            scale: Math.random() * 1.5 + 0.5,
-          }}
-          animate={{
-            y: [null, Math.random() * -200 - 50],
-            opacity: [null, 0],
-          }}
-          transition={{
-            duration: Math.random() * 5 + 3,
-            repeat: Infinity,
-            ease: "linear",
-          }}
+          key={p.id}
+          className="absolute w-1 h-1 bg-[#E8B923] rounded-full shadow-[0_0_6px_#E8B923]"
+          style={{ left: p.left, top: p.top }}
+          animate={{ y: -160, opacity: [0.5, 0.8, 0] }}
+          transition={{ duration: p.dur, repeat: Infinity, ease: 'linear', delay: p.delay }}
         />
       ))}
     </div>
@@ -107,10 +105,10 @@ const ModalLoading = () => (
       </div>
       <div className="text-center">
         <p className="text-white font-black text-sm uppercase tracking-[0.4em] drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
-          LIONS<span className="text-[#E8B923]">CARS</span>
+          LYONS <span className="text-[#E8B923]">&amp; ACTYON</span>
         </p>
         <p className="text-zinc-500 text-[10px] mt-2 font-bold uppercase tracking-widest animate-pulse">
-          Cargando experiencia...
+          Preparando catálogo...
         </p>
       </div>
     </div>
@@ -181,7 +179,7 @@ const CarCard = ({ car, onClick, isFavorite, onToggleFavorite }: CarCardProps) =
 
   const imageList = Array.isArray(car.imagenes) && car.imagenes.length > 0
     ? car.imagenes
-    : car.imagen ? [car.imagen] : ['https://via.placeholder.com/800x600/121212/e8b923?text=Lions+Cars'];
+    : car.imagen ? [car.imagen] : ['https://via.placeholder.com/800x600/121212/e8b923?text=Lyons+Actyon'];
 
   return (
     <div
@@ -271,7 +269,7 @@ const CarCard = ({ car, onClick, isFavorite, onToggleFavorite }: CarCardProps) =
               <div className="flex flex-col">
                 <span className="text-[8px] uppercase font-bold text-zinc-600 tracking-widest">Atendido por</span>
                 <span className="text-zinc-300 font-semibold leading-none truncate max-w-[80px] sm:max-w-none">
-                  {car.vendedor ? car.vendedor.split(' ')[0] : 'Lions'}
+                  {car.vendedor ? car.vendedor.split(' ')[0] : 'Lyons'}
                 </span>
               </div>
             </div>
@@ -392,7 +390,7 @@ const CarModal = ({
 
   const images = Array.isArray(car.imagenes) && car.imagenes.length > 0
     ? car.imagenes
-    : [car.imagen || 'https://via.placeholder.com/800x600/121212/e8b923?text=Lions+Cars'];
+    : [car.imagen || 'https://via.placeholder.com/800x600/121212/e8b923?text=Lyons+Actyon'];
   const splitIndex = Math.ceil(images.length / 2);
   const exteriorImages = images.slice(0, splitIndex);
   const interiorImages = images.slice(splitIndex);
@@ -400,8 +398,8 @@ const CarModal = ({
   const currentImage = activeImages[currentImgIdx] || images[0];
 
   const shareUrl = car.slug
-    ? `https://lionscars.cl/autos/${car.slug}`
-    : `https://lionscars.cl/vehiculo/${car.id}`;
+    ? `https://lyonsactyon.cl/autos/${car.slug}`
+    : `https://lyonsactyon.cl/vehiculo/${car.id}`;
 
   const handleTabChange = (tab: TabType) => { setActiveTab(tab); setCurrentImgIdx(0); setIsZoomed(false); };
   const goToPrevImage = () => setCurrentImgIdx(p => p > 0 ? p - 1 : activeImages.length - 1);
@@ -409,7 +407,7 @@ const CarModal = ({
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({ title: `${car.marca} ${car.modelo} ${car.ano} — Lions Cars`, url: shareUrl });
+      navigator.share({ title: `${car.marca} ${car.modelo} ${car.ano} — Lyons & Actyon Automotriz`, url: shareUrl });
     } else {
       navigator.clipboard.writeText(shareUrl);
     }
@@ -562,7 +560,7 @@ const CarModal = ({
                 )}
               </div>
               {car.slug && (
-                <p className="text-[10px] text-zinc-600 mt-4 font-mono truncate">lionscars.cl/autos/{car.slug}</p>
+                <p className="text-[10px] text-zinc-600 mt-4 font-mono truncate">lyonsactyon.cl/autos/{car.slug}</p>
               )}
             </div>
 
@@ -649,7 +647,7 @@ const CarModal = ({
 
               <PDFDownloadLink
                 document={<CarPdfDocument car={car} />}
-                fileName={`Ficha_LionsCars_${car.marca}_${car.modelo}.pdf`}
+                fileName={`Ficha_LyonsActyon_${car.marca}_${car.modelo}.pdf`}
                 className="w-full"
               >
                 {/* @ts-ignore */}
@@ -720,7 +718,7 @@ const Footer = () => (
             <div className="w-12 h-12 bg-gradient-to-br from-[#C8102E] to-red-900 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(200,16,46,0.4)] border border-red-500/30">
               <Car className="text-[#E8B923]" size={26} />
             </div>
-            <span className="text-white font-black text-2xl tracking-tighter uppercase drop-shadow-md">LIONS<span className="text-[#E8B923]">CARS</span></span>
+            <span className="text-white font-black text-2xl tracking-tighter uppercase drop-shadow-md">LYONS <span className="text-[#E8B923]">&amp; ACTYON</span></span>
           </div>
           <p className="text-zinc-400 text-sm leading-relaxed font-medium">Tu destino premium para la compra y venta de vehículos. Calidad garantizada, inspección rigurosa y financiamiento a tu medida.</p>
         </div>
@@ -758,7 +756,7 @@ const Footer = () => (
         </div>
       </div>
       <div className="border-t border-red-900/40 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
-        <p className="text-zinc-500 text-[10px] uppercase font-black tracking-[0.3em]">© 2026 LIONS CARS - MULTISERVICIOS DEL SUR</p>
+        <p className="text-zinc-500 text-[10px] uppercase font-black tracking-[0.3em]">© 2026 LYONS & ACTYON AUTOMOTRIZ</p>
         <div className="flex gap-6">
           <motion.div whileHover={{ scale: 1.2, y: -2 }} className="text-zinc-500 hover:text-[#E8B923] cursor-pointer transition-colors"><Share2 size={18} /></motion.div>
           <motion.div whileHover={{ scale: 1.2, y: -2 }} className="text-zinc-500 hover:text-[#C8102E] cursor-pointer transition-colors"><Heart size={18} /></motion.div>
@@ -932,7 +930,7 @@ function App() {
     carService.incrementInterested(car.id).catch(() => {});
     let phone = '56958016208';
     if (car.vendedor_id && vendors[car.vendedor_id]) phone = vendors[car.vendedor_id];
-    const link = car.slug ? `lionscars.cl/autos/${car.slug}` : `ID:${car.id}`;
+    const link = car.slug ? `lyonsactyon.cl/autos/${car.slug}` : `ID:${car.id}`;
     const text = `Hola, me interesa el ${car.marca} ${car.modelo} ${car.ano} — ${link}`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
   };
@@ -978,7 +976,7 @@ function App() {
               onClick={() => { setCurrentView('catalog'); navigate('/'); }}
               whileHover={{ scale: 1.02 }}
             >
-              <span className="font-display text-2xl sm:text-3xl font-black italic text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] tracking-tighter">LIONS<span className="text-[#E8B923]">CARS</span></span>
+              <span className="font-display text-2xl sm:text-3xl font-black italic text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] tracking-tighter">LYONS <span className="text-[#E8B923]">&amp; ACTYON</span></span>
             </motion.div>
             <div className="flex items-center gap-3 sm:gap-5">
               {isAuthenticated ? (
@@ -1010,85 +1008,79 @@ function App() {
           </div>
         </motion.header>
 
-        {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}
+        <Suspense fallback={null}>{showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}</Suspense>
 
         {currentView === 'catalog' && (
-          <section className="relative min-h-[75vh] w-full bg-[#050505] overflow-hidden flex items-center">
-            
-            {/* BACKGROUND IMAGE - WITH ULTRA PREMIUM FALLBACK & OBJECT-COVER */}
-            <motion.div 
-              initial={{ scale: 1.08, opacity: 0 }}
+          <section className="relative min-h-[85vh] w-full overflow-hidden flex items-center">
+            <motion.div
+              initial={{ scale: 1.06, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 2.5, ease: "easeOut" }}
-              className="absolute inset-0 w-full h-full"
+              transition={{ duration: 2, ease: 'easeOut' }}
+              className="absolute inset-0"
             >
-              <img 
-                src="/web3.jpg" 
-                alt="Lions Cars — Garaje Premium" 
-                className="w-full h-full object-cover object-right md:object-center opacity-80" 
+              <img
+                src="/web3.jpg"
+                alt="Lyons & Actyon Automotriz"
+                className="w-full h-full object-cover object-right md:object-center"
+                fetchPriority="high"
                 onError={(e) => {
-                  // Si no carga la local, carga un fallback de super lujo
-                  e.currentTarget.src = "https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&q=80&w=2069";
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&q=80&w=2069';
                 }}
               />
             </motion.div>
-            
-            {/* GRADIENT OVERLAYS TO MERGE IMAGE WITH BACKGROUND */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 md:via-black/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-black/30" />
-            
-            {/* SUBTLE GLOWS */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(200,16,46,0.15),_transparent_40%)]" />
 
-            <Background3D />
-            {/* FLOATING SPARKLES ANIMATION */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#030305] via-[#030305]/85 md:via-[#030305]/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#030305] via-transparent to-[#030305]/40" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(200,16,46,0.18),transparent_55%)]" />
+
+            <Suspense fallback={null}><Background3D /></Suspense>
             <Sparkles />
-            
-            {/* CONTENT */}
-            <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-16 lg:pt-0">
-              <motion.div 
-                variants={containerStagger} 
-                initial="hidden" 
-                animate="show" 
-                className="max-w-2xl bg-black/40 p-8 sm:p-10 md:p-12 rounded-[2.5rem] backdrop-blur-xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8),0_0_40px_rgba(200,16,46,0.15)]"
-              >
-                <motion.div variants={fadeInUpSpring} className="flex items-center gap-3 mb-5">
-                  <span className="w-8 h-[2px] bg-[#E8B923]" />
-                  <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.4em] text-[#E8B923]">
-                    Exclusividad Automotriz
-                  </span>
+
+            <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-8 py-28 lg:py-0 lg:min-h-[85vh] flex flex-col justify-center">
+              <motion.div variants={containerStagger} initial="hidden" animate="show" className="max-w-3xl">
+
+                <motion.div variants={fadeInUpSpring} className="flex items-center gap-3 mb-8">
+                  <div className="flex items-center gap-2.5 bg-[#C8102E]/10 border border-[#C8102E]/25 px-5 py-2.5 rounded-full backdrop-blur-sm">
+                    <span className="w-1.5 h-1.5 bg-[#E8B923] rounded-full animate-pulse shadow-[0_0_6px_#E8B923]" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.45em] text-[#E8B923]">Premium Automotriz · Puerto Montt</span>
+                  </div>
                 </motion.div>
-                
-                <motion.h1 variants={fadeInUpSpring} className="font-display text-5xl sm:text-6xl md:text-7xl font-black italic leading-[0.95] text-white mb-6 drop-shadow-2xl">
-                  <span className="text-transparent bg-clip-text bg-[linear-gradient(110deg,#E8B923,45%,#FFE65F,55%,#E8B923)] bg-[length:200%_auto] animate-[gradient_3s_linear_infinite]">LIONS</span>
-                  <br />
-                  <span className="text-[#C8102E] drop-shadow-[0_0_20px_rgba(200,16,46,0.5)]">AUTOMOTRIZ</span>
+
+                <motion.h1 variants={fadeInUpSpring} className="font-display font-black leading-[0.85] tracking-tight mb-3">
+                  <span className="text-shimmer-gold text-7xl sm:text-8xl md:text-[9rem] block">LYONS</span>
+                  <span className="text-white/20 text-3xl sm:text-4xl md:text-5xl block leading-none my-2">&amp;</span>
+                  <span className="text-white text-6xl sm:text-7xl md:text-8xl block">ACTYON</span>
                 </motion.h1>
-                
-                <motion.p variants={fadeInUpSpring} className="text-gray-300 text-sm md:text-lg mb-8 leading-relaxed max-w-lg font-medium">
-                  Vehículos seminuevos rigurosamente seleccionados e inspeccionados. 
-                  <span className="text-white font-black"> Compra y vende seguro. Marcamos el estándar de la diferencia.</span>
+
+                <motion.p variants={fadeInUpSpring} className="font-display text-[#C8102E] text-lg sm:text-xl font-black uppercase tracking-[0.5em] mb-8 drop-shadow-[0_0_25px_rgba(200,16,46,0.6)]">
+                  AUTOMOTRIZ
                 </motion.p>
-                
-                <motion.div variants={fadeInUpSpring} className="flex flex-col sm:flex-row gap-4">
-                  <button className="px-8 py-4 bg-gradient-to-r from-[#C8102E] to-red-800 text-white border border-[#ff4d4d]/30 font-black uppercase text-xs tracking-[0.2em] rounded-xl shadow-[0_0_30px_rgba(200,16,46,0.4)] hover:shadow-[0_0_40px_rgba(200,16,46,0.7)] hover:scale-[1.02] transition-all relative overflow-hidden group">
-                     <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
-                    <span className="relative z-10">Catálogo Premium</span>
+
+                <motion.p variants={fadeInUpSpring} className="text-zinc-400 text-sm md:text-base mb-10 leading-relaxed max-w-lg">
+                  Vehículos seminuevos rigurosamente inspeccionados. Financiamiento flexible y transferencia express.{' '}
+                  <span className="text-white font-semibold">Tu próximo auto, a tu medida.</span>
+                </motion.p>
+
+                <motion.div variants={fadeInUpSpring} className="flex flex-wrap gap-4 mb-14">
+                  <button className="group px-8 py-4 bg-gradient-to-r from-[#C8102E] to-[#990000] text-white font-black uppercase text-xs tracking-[0.25em] rounded-xl shadow-[0_0_30px_rgba(200,16,46,0.35)] hover:shadow-[0_0_50px_rgba(200,16,46,0.7)] hover:scale-[1.03] transition-all relative overflow-hidden">
+                    <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
+                    <span className="relative z-10">Ver Catálogo</span>
                   </button>
-                  <button className="px-8 py-4 bg-black/60 backdrop-blur-md border border-[#E8B923]/50 text-[#E8B923] font-black uppercase text-xs tracking-[0.2em] rounded-xl hover:bg-[#E8B923]/10 transition-all hover:shadow-[0_0_20px_rgba(232,185,35,0.2)]">
+                  <button className="px-8 py-4 bg-white/[0.04] backdrop-blur-md border border-[#E8B923]/35 text-[#E8B923] font-black uppercase text-xs tracking-[0.25em] rounded-xl hover:bg-[#E8B923]/10 hover:border-[#E8B923]/60 transition-all">
                     Simular Crédito
                   </button>
                 </motion.div>
-                
-                <motion.div variants={containerStagger} className="flex flex-wrap gap-5 sm:gap-8 mt-10 border-t border-white/10 pt-8">
+
+                <motion.div variants={fadeInUpSpring} className="flex flex-wrap gap-10 pt-8 border-t border-white/[0.07]">
                   {[
-                    { text: 'Garantía Extendida', color: 'bg-[#E8B923]' },
-                    { text: 'Financiamiento Flexible', color: 'bg-[#C8102E]' },
-                    { text: 'Inspección 360°', color: 'bg-white' }
-                  ].map(t => (
-                    <motion.div key={t.text} variants={fadeInUpSpring} className="flex items-center gap-3 text-xs font-bold text-gray-300">
-                      <span className={`w-2 h-2 ${t.color} rounded-full shadow-[0_0_8px_${t.color}]`} />{t.text}
-                    </motion.div>
+                    { val: String(stock.length || '—'), label: 'Autos en stock' },
+                    { val: '100%', label: 'Inspección garantizada' },
+                    { val: '15 min', label: 'Respuesta promedio' },
+                  ].map(({ val, label }) => (
+                    <div key={label} className="flex flex-col gap-1">
+                      <span className="font-display text-3xl font-black text-white tracking-tight">{val}</span>
+                      <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em]">{label}</span>
+                    </div>
                   ))}
                 </motion.div>
               </motion.div>
@@ -1096,6 +1088,7 @@ function App() {
           </section>
         )}
       </div>
+
 
       <main className="w-full px-4 sm:px-6 pb-20 min-h-[600px] mt-12">
         <AnimatePresence mode="wait">
@@ -1181,7 +1174,7 @@ function App() {
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-32">
                     <div className="w-12 h-12 border-4 border-[#1a1a1a] border-t-[#C8102E] rounded-full animate-spin mb-6 shadow-[0_0_20px_rgba(200,16,46,0.3)]" />
-                    <p className="text-[#E8B923] font-black uppercase tracking-[0.3em] animate-pulse text-xs">Alineando Flota...</p>
+                    <p className="text-[#E8B923] font-black uppercase tracking-[0.3em] animate-pulse text-xs">Preparando catálogo...</p>
                   </div>
                 ) : (
                   <>
@@ -1217,6 +1210,7 @@ function App() {
             <>
               {isAuthenticated && (user?.role === 'admin' || user?.role === 'vendedor') ? (
                 <motion.div key="seller-view" variants={pageTransitionVariants} initial="initial" animate="animate" exit="exit" className="w-full">
+                  <Suspense fallback={<div className="flex items-center justify-center py-32"><div className="w-10 h-10 border-2 border-[#C8102E] border-t-transparent rounded-full animate-spin" /></div>}>
                   <SellerPortal
                     stock={stock}
                     onAdd={handleAddCar}
@@ -1226,6 +1220,7 @@ function App() {
                     userRole={user?.role}
                     userId={user?.id}
                   />
+                  </Suspense>
                 </motion.div>
               ) : (
                 <motion.div key="access-denied" variants={pageTransitionVariants} initial="initial" animate="animate" exit="exit" className="w-full h-[60vh] flex items-center justify-center">
