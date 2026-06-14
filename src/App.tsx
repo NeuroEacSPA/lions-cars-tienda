@@ -620,10 +620,14 @@ const CarModal = ({
     setTouchStart(null);
   };
 
-  // Scroll active thumb into view
+  // Scroll active thumb into view — use scrollLeft directly to avoid
+  // scrollIntoView() bubbling up and jumping the modal's info panel
   useEffect(() => {
-    const el = thumbsRef.current?.children[currentImgIdx] as HTMLElement;
-    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    const container = thumbsRef.current;
+    const el = container?.children[currentImgIdx] as HTMLElement;
+    if (!container || !el) return;
+    const target = el.offsetLeft - container.offsetWidth / 2 + el.offsetWidth / 2;
+    container.scrollTo({ left: target, behavior: 'smooth' });
   }, [currentImgIdx]);
 
   useEffect(() => {
