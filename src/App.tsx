@@ -590,7 +590,7 @@ const CarModal = ({
     ? { ...car, imagenes: pdfBase64, imagen: pdfBase64[0] }
     : car;
 
-  const shareUrl = car.slug ? `https://lyonsactyon.cl/autos/${car.slug}` : `https://lyonsactyon.cl/vehiculo/${car.id}`;
+  const shareUrl = car.slug ? `https://lionscars.cl/autos/${car.slug}` : `https://lionscars.cl/vehiculo/${car.id}`;
 
   const handleTabChange = (tab: TabType) => { setActiveTab(tab); setCurrentImgIdx(0); setIsZoomed(false); };
   const goToPrev = () => setCurrentImgIdx(p => (p > 0 ? p - 1 : activeImages.length - 1));
@@ -802,7 +802,7 @@ const CarModal = ({
                 >Entrega Inmediata</motion.span>
               )}
             </div>
-            {car.slug && <p className="text-[10px] text-zinc-700 font-mono mb-5 truncate">lyonsactyon.cl/autos/{car.slug}</p>}
+            {car.slug && <p className="text-[10px] text-zinc-700 font-mono mb-5 truncate">lionscars.cl/autos/{car.slug}</p>}
 
             {/* SpotlightCard badges */}
             <div className="grid grid-cols-2 gap-2 mb-5">
@@ -1250,7 +1250,7 @@ function App() {
     carService.incrementInterested(car.id).catch(() => {});
     let phone = '56958016208';
     if (car.vendedor_id && vendors[car.vendedor_id]) phone = vendors[car.vendedor_id];
-    const link = car.slug ? `lyonsactyon.cl/autos/${car.slug}` : `ID:${car.id}`;
+    const link = car.slug ? `lionscars.cl/autos/${car.slug}` : `ID:${car.id}`;
     const text = `Hola, me interesa el ${car.marca} ${car.modelo} ${car.ano} — ${link}`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
   };
