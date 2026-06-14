@@ -1101,7 +1101,9 @@ function App() {
         <Suspense fallback={null}>{showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}</Suspense>
 
         {currentView === 'catalog' && (
-          <section className="relative w-full overflow-hidden">
+          <section className="w-full">
+            {/* Relative wrapper: overlays % positions reference IMAGE height, not section total */}
+            <div className="relative w-full overflow-hidden">
             {/* Imagen completa sin overlays */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -1169,6 +1171,28 @@ function App() {
               <TasarVehiculo />
             </motion.div>
 
+            {/* ── BOTÓN ADMIN MOBILE — cubre solo el ≡ (inside relative wrapper) ── */}
+            <div className="lg:hidden absolute z-30" style={{ top:'2.5%', right:'1.2%', width:'11%', aspectRatio:'1' }}>
+              {isAuthenticated ? (
+                <div className="relative w-full h-full">
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={() => setCurrentView(currentView === 'catalog' ? 'seller' : 'catalog')}
+                      className="w-full h-full bg-transparent cursor-pointer"
+                      title="Admin"
+                    />
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="w-full h-full bg-transparent cursor-pointer"
+                  title="Admin"
+                />
+              )}
+            </div>
+            </div>{/* ─ end relative image wrapper — mobile CTAs go outside so they don't affect overlay % ─ */}
+
             {/* ── MOBILE: CTAs + widget debajo de la imagen ── */}
             <div className="lg:hidden w-full bg-gradient-to-b from-[#030305] to-[#050507]">
               <div className="mx-4 h-px bg-white/[0.05] mt-1" />
@@ -1200,27 +1224,6 @@ function App() {
                   <TasarVehiculo />
                 </div>
               </div>
-            </div>
-
-            {/* ── BOTÓN ADMIN MOBILE — cubre solo el ≡ ── */}
-            <div className="lg:hidden absolute z-30" style={{ top:'2.5%', right:'1.2%', width:'11%', aspectRatio:'1' }}>
-              {isAuthenticated ? (
-                <div className="relative w-full h-full">
-                  {user?.role === 'admin' && (
-                    <button
-                      onClick={() => setCurrentView(currentView === 'catalog' ? 'seller' : 'catalog')}
-                      className="w-full h-full bg-transparent cursor-pointer"
-                      title="Admin"
-                    />
-                  )}
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowAuthModal(true)}
-                  className="w-full h-full bg-transparent cursor-pointer"
-                  title="Admin"
-                />
-              )}
             </div>
           </section>
         )}
