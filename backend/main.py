@@ -158,6 +158,16 @@ def init_db():
         activo BOOLEAN DEFAULT 1,
         creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS activity_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        username TEXT NOT NULL,
+        nombre TEXT NOT NULL,
+        action TEXT NOT NULL,
+        entity_name TEXT NOT NULL,
+        details TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
 
     # Migraciones seguras (por si la DB ya existe)
     for columna, definicion in [
@@ -768,3 +778,36 @@ def reset_all_metrics(admin: dict = Depends(get_admin_user)):
     conn.commit()
     conn.close()
     return {"message": f"Métricas reseteadas en {len(rows)} vehículos"}
+
+
+# --- ACTIVITY LOG ---
+
+class ActivityEntry(BaseModel):
+    action: str
+    entity_name: str
+    details: Optional[str] = None
+
+@app.post("/api/activity")
+def create_activity(entry: ActivityEntry, current_user: dict = Depends(get_current_user)):
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT nombre FROM users WHERE id = ?", (current_user["user_id"],)).fetchone()
+    nombre = row["nombre"] if row else current_user["username"]
+    conn.execute(
+        "INSERT INTO activity_log (user_id, username, nombre, action, entity_name, details) VALUES (?, ?, ?, ?, ?, ?)",
+        (current_user["user_id"], current_user["username"], nombre,
+         entry.action, entry.entity_name, entry.details)
+    )
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+@app.get("/api/activity")
+def get_activity(limit: int = 30, current_user: dict = Depends(get_current_user)):
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        "SELECT * FROM activity_log ORDER BY created_at DESC LIMIT ?", (limit,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]

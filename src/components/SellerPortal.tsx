@@ -51,6 +51,7 @@ interface SettingsViewProps { showToast: (msg: string, type: 'success' | 'error'
 
 interface SellerPortalProps {
   stock: Vehiculo[];
+  activityLog?: import('../services/api').ActivityLogEntry[];
   onBack?: () => void;
   onAdd: (car: Vehiculo) => Promise<void>;
   onUpdate: (car: Vehiculo) => Promise<void>;
@@ -82,7 +83,7 @@ interface CustomTooltipProps {
 
 interface DashboardProps {
   stock: Vehiculo[];
-  notifications: Notification[];
+  activityLog: import('../services/api').ActivityLogEntry[];
   onAdd: (car: Vehiculo) => Promise<void>;
   onUpdate: (car: Vehiculo) => Promise<void>;
   onDelete: (id: number) => void;
@@ -1848,7 +1849,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ car, onCancel, onSubmit }) =>
 // 6. MAIN COMPONENT (DASHBOARD WRAPPER CORREGIDO PARA RESPONSIVE)
 const LionsEliteDashboard: React.FC<DashboardProps> = ({
   stock,
-  notifications,
+  activityLog,
   onAdd,
   onUpdate,
   onDelete,
@@ -1974,21 +1975,42 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
             <div className="relative">
               <button onClick={() => setShowNotifications(!showNotifications)} className="p-2 bg-neutral-900 rounded-full hover:bg-white/10 transition-colors relative">
                 <Bell size={18} className="text-neutral-400" />
-                {notifications.length > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#C9A84C] rounded-full border-2 border-[#050505]" />}
+                {activityLog.length > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#C9A84C] rounded-full border-2 border-[#050505]" />}
               </button>
               <AnimatePresence>
                 {showNotifications && (
-                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="absolute right-0 mt-4 w-72 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 origin-top-right">
-                    <div className="p-4 border-b border-white/5 bg-white/5"><h4 className="text-xs font-bold text-[#C9A84C] uppercase tracking-widest">Notificaciones</h4></div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {notifications.map(n => (
-                        <div key={n.id} className="p-4 hover:bg-white/5 border-b border-white/5 last:border-0 flex gap-3 transition-colors cursor-pointer">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${n.type === 'price' ? 'bg-green-500/10 text-green-500' : n.type === 'warning' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                            {n.type === 'price' ? <TrendingUp size={14} /> : n.type === 'warning' ? <AlertTriangle size={14} /> : <Bell size={14} />}
+                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="absolute right-0 mt-4 w-80 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 origin-top-right">
+                    <div className="p-4 border-b border-white/5 bg-white/5 flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-[#C9A84C] uppercase tracking-widest">Actividad reciente</h4>
+                      <span className="text-[10px] text-neutral-500">{activityLog.length} eventos</span>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {activityLog.length === 0 ? (
+                        <div className="p-6 text-center text-xs text-neutral-500">Sin actividad registrada</div>
+                      ) : activityLog.map(entry => {
+                        const isCreate = entry.action === 'create';
+                        const isDelete = entry.action === 'delete';
+                        const date = new Date(entry.created_at);
+                        const now = new Date();
+                        const diffMs = now.getTime() - date.getTime();
+                        const diffMin = Math.floor(diffMs / 60000);
+                        const timeLabel = diffMin < 1 ? 'ahora' : diffMin < 60 ? `hace ${diffMin}m` : diffMin < 1440 ? `hace ${Math.floor(diffMin/60)}h` : `hace ${Math.floor(diffMin/1440)}d`;
+                        return (
+                          <div key={entry.id} className="p-4 hover:bg-white/5 border-b border-white/5 last:border-0 flex gap-3 transition-colors">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isCreate ? 'bg-green-500/10 text-green-500' : isDelete ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-400'}`}>
+                              {isCreate ? <Car size={14} /> : isDelete ? <Trash2 size={14} /> : <TrendingUp size={14} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-[#C9A84C] truncate">{entry.nombre}</p>
+                              <p className="text-xs text-white leading-tight mt-0.5">
+                                {isCreate ? 'agregó' : isDelete ? 'eliminó' : 'actualizó'} <span className="font-medium">{entry.entity_name}</span>
+                              </p>
+                              {entry.details && <p className="text-[10px] text-neutral-400 mt-1 leading-tight">{entry.details}</p>}
+                              <p className="text-[10px] text-neutral-600 mt-1">{timeLabel}</p>
+                            </div>
                           </div>
-                          <div><p className="text-xs font-medium text-white leading-tight">{n.text}</p><p className="text-[10px] text-neutral-500 mt-1">{n.time}</p></div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </motion.div>
                 )}
@@ -2037,22 +2059,16 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
   );
 };
 
-export default function SellerPortal({ stock, onAdd, onUpdate, onDelete, onBack, userRole, userId }: SellerPortalProps) {
+export default function SellerPortal({ stock, activityLog = [], onAdd, onUpdate, onDelete, onBack, userRole, userId }: SellerPortalProps) {
   // Filtrar stock según el rol del usuario
-  const filteredStock = userRole === 'vendedor' && userId 
+  const filteredStock = userRole === 'vendedor' && userId
     ? stock.filter(car => car.vendedor_id === userId)
     : stock;
-
-  const [notifications] = useState<Notification[]>([
-    { id: 1, text: 'Baja de precio detectada en vehículo premium', type: 'price', time: '2h' },
-    { id: 2, text: 'Nueva oferta recibida por BMW M4', type: 'lead', time: '5h' },
-    { id: 3, text: 'Stock crítico en SUV compactos', type: 'warning', time: '1d' },
-  ]);
 
   return (
     <LionsEliteDashboard
       stock={filteredStock}
-      notifications={notifications}
+      activityLog={activityLog}
       onAdd={onAdd}
       onUpdate={onUpdate}
       onDelete={onDelete}

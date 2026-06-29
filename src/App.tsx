@@ -1083,6 +1083,7 @@ const FilterSection = ({
 function App() {
   const [stock, setStock] = useState<Vehiculo[]>([]);
   const [vendors, setVendors] = useState<{ [key: number]: string }>({});
+  const [activityLog, setActivityLog] = useState<import('./services/api').ActivityLogEntry[]>([]);
   const navigate = useNavigate();
 
 // ── Lee el slug o el id desde la URL
@@ -1151,6 +1152,19 @@ function App() {
     }
   }, [isAuthenticated, user, authLoading]);
 
+  const fetchActivity = async () => {
+    const data = await carService.getActivity();
+    setActivityLog(data);
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchActivity();
+      const interval = setInterval(fetchActivity, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated]);
+
   useEffect(() => {
     fetchCars();
     carService.getVendors().then(vendorsList => {
@@ -1182,6 +1196,8 @@ function App() {
       const newCar = await carService.create(carData as Vehiculo);
       setStock(prev => [newCar, ...prev]);
       setNotification({ message: 'Vehículo Agregado', sub: `${newCar.marca} ${newCar.modelo} guardado.` });
+      await carService.logActivity('create', `${newCar.marca} ${newCar.modelo} ${newCar.ano}`, `Precio: $${newCar.precio.toLocaleString('es-CL')} · ${newCar.km.toLocaleString('es-CL')} km`);
+      fetchActivity();
     } catch {
       setNotification({ message: 'Error', sub: 'No se pudo guardar el vehículo.' });
     }
@@ -1189,9 +1205,19 @@ function App() {
 
   const handleUpdateCar = async (updatedCar: Vehiculo) => {
     try {
+      const oldCar = stock.find(c => c.id === updatedCar.id);
       const result = await carService.update(updatedCar);
       setStock(prev => prev.map(c => c.id === result.id ? result : c));
       setNotification({ message: 'Vehículo Actualizado', sub: 'Los cambios han sido guardados.' });
+      const changes: string[] = [];
+      if (oldCar && oldCar.precio !== updatedCar.precio)
+        changes.push(`Precio: $${oldCar.precio.toLocaleString('es-CL')} → $${updatedCar.precio.toLocaleString('es-CL')}`);
+      if (oldCar && oldCar.estado !== updatedCar.estado)
+        changes.push(`Estado: ${oldCar.estado} → ${updatedCar.estado}`);
+      if (oldCar && oldCar.km !== updatedCar.km)
+        changes.push(`KM: ${oldCar.km.toLocaleString('es-CL')} → ${updatedCar.km.toLocaleString('es-CL')}`);
+      await carService.logActivity('update', `${updatedCar.marca} ${updatedCar.modelo} ${updatedCar.ano}`, changes.length ? changes.join(' · ') : 'Datos actualizados');
+      fetchActivity();
     } catch {
       setNotification({ message: 'Error', sub: 'No se pudo actualizar.' });
     }
@@ -1202,10 +1228,14 @@ function App() {
   const executeDeleteCar = async () => {
     const id = confirmDialog.idToDelete;
     if (!id) return;
+    const carToDelete = stock.find(c => c.id === id);
     try {
       await carService.delete(id);
       setStock(prev => prev.filter(c => c.id !== id));
       setNotification({ message: 'Vehículo Eliminado', sub: 'El registro ha sido borrado.' });
+      if (carToDelete)
+        await carService.logActivity('delete', `${carToDelete.marca} ${carToDelete.modelo} ${carToDelete.ano}`, `Patente: ${carToDelete.patente || 'sin patente'}`);
+      fetchActivity();
     } catch {
       setNotification({ message: 'Error', sub: 'No se pudo eliminar.' });
     } finally {
@@ -1750,6 +1780,7 @@ function App() {
                   <Suspense fallback={<div className="flex items-center justify-center py-32"><div className="w-10 h-10 border-2 border-[#C8102E] border-t-transparent rounded-full animate-spin" /></div>}>
                   <SellerPortal
                     stock={stock}
+                    activityLog={activityLog}
                     onAdd={handleAddCar}
                     onUpdate={handleUpdateCar}
                     onDelete={requestDeleteCar}
