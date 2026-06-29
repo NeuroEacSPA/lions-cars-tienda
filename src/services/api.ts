@@ -65,6 +65,17 @@ export interface User {
   creado_en: string;
 }
 
+export interface ActivityLogEntry {
+  id: number;
+  user_id: number;
+  username: string;
+  nombre: string;
+  action: string;
+  entity_name: string;
+  details: string | null;
+  created_at: string;
+}
+
 // --- CONFIGURACIÓN DE LA URL (Automática) ---
 const getApiUrl = () => {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -299,5 +310,26 @@ export const carService = {
       method: 'POST',
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
     });
+  },
+
+  // --- ACTIVITY LOG ---
+  logActivity: async (action: string, entityName: string, details?: string): Promise<void> => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+    await fetch(`${API_URL}/activity`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ action, entity_name: entityName, details: details || null }),
+    }).catch(() => {});
+  },
+
+  getActivity: async (): Promise<ActivityLogEntry[]> => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return [];
+    const r = await fetch(`${API_URL}/activity`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!r.ok) return [];
+    return r.json();
   },
 };
