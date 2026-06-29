@@ -19,6 +19,7 @@ import {
 // --- IMPORTACIÓN DE SERVICIOS (Simulada para mantener integridad) ---
 import { carService } from '../services/api';
 import type { Vehiculo, Hotspot, Brand, Color, User } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 // --- ESTILOS ---
 const GOLD_MAIN = '#C9A84C';
@@ -546,6 +547,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stock, stats }) => {
 
 // 3. SETTINGS VIEW
 const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
+  const { isOwner } = useAuth();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [colors, setColors] = useState<Color[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -965,6 +967,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
                 >
                   <option value="vendedor">Vendedor</option>
                   <option value="admin">Administrador</option>
+                  {isOwner && <option value="owner">⭐ Owner</option>}
                 </select>
               </div>
 
@@ -1209,6 +1212,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
                   >
                     <option value="vendedor">Vendedor</option>
                     <option value="admin">Administrador</option>
+                    {isOwner && <option value="owner">⭐ Owner</option>}
                   </select>
                 </div>
 
