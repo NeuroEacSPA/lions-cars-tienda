@@ -52,8 +52,8 @@ interface SettingsViewProps { showToast: (msg: string, type: 'success' | 'error'
 interface SellerPortalProps {
   stock: Vehiculo[];
   onBack?: () => void;
-  onAdd: (car: Vehiculo) => void;
-  onUpdate: (car: Vehiculo) => void;
+  onAdd: (car: Vehiculo) => Promise<void>;
+  onUpdate: (car: Vehiculo) => Promise<void>;
   onDelete: (id: number) => void;
   userRole?: string;
   userId?: number;
@@ -83,8 +83,8 @@ interface CustomTooltipProps {
 interface DashboardProps {
   stock: Vehiculo[];
   notifications: Notification[];
-  onAdd: (car: Vehiculo) => void;
-  onUpdate: (car: Vehiculo) => void;
+  onAdd: (car: Vehiculo) => Promise<void>;
+  onUpdate: (car: Vehiculo) => Promise<void>;
   onDelete: (id: number) => void;
   onBack?: () => void;
   onLogout: () => void;
@@ -2015,11 +2015,16 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
               <VehicleForm
                 key={editingCar ? editingCar.id : 'new'}
                 car={editingCar}
-                onCancel={() => setView('inventory')}
-                onSubmit={(d) => {
-                  if (editingCar) onUpdate(d); else onAdd(d);
-                  setView('inventory');
-                  showToast(editingCar ? 'Vehículo actualizado' : 'Vehículo creado', 'success');
+                onCancel={() => { setEditingCar(null); setView('inventory'); }}
+                onSubmit={async (d) => {
+                  try {
+                    if (editingCar) await onUpdate(d); else await onAdd(d);
+                    setEditingCar(null);
+                    setView('inventory');
+                    showToast(editingCar ? 'Vehículo actualizado' : 'Vehículo creado', 'success');
+                  } catch {
+                    showToast('Error al guardar el vehículo', 'error');
+                  }
                 }}
               />
             )}

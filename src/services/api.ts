@@ -122,6 +122,7 @@ export const carService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(car),
     });
+    if (!r.ok) throw new Error(`Error ${r.status} al crear vehículo`);
     return r.json();
   },
 
@@ -131,6 +132,7 @@ export const carService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(car),
     });
+    if (!r.ok) throw new Error(`Error ${r.status} al actualizar vehículo`);
     return r.json();
   },
 
