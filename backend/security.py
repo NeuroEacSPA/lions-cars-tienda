@@ -1,25 +1,26 @@
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr, validator
 
-# Configuración de seguridad
-SECRET_KEY = "lions-cars-secret-key-2024-change-in-prod"  # ⚠️ CAMBIAR EN PRODUCCIÓN
+SECRET_KEY = os.environ.get("LC_SECRET_KEY", "lions-cars-x7k2p9q4m1n8j3r6t5w0y")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 horas
 
-# Contexto para hashing de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# --- SCHEMAS PARA VALIDACIÓN ---
+VALID_ROLES = {"admin", "vendedor", "owner"}
+
+
 class UserCreate(BaseModel):
     nombre: str
     email: EmailStr
     telefono: str
     username: str
     password: str
-    role: Optional[str] = "vendedor"  # admin | vendedor
+    role: Optional[str] = "vendedor"
 
     @validator('nombre')
     def nombre_not_empty(cls, v):
@@ -29,7 +30,6 @@ class UserCreate(BaseModel):
 
     @validator('telefono')
     def telefono_valid(cls, v):
-        # Remover caracteres especiales y verificar longitud mínima
         digits = ''.join(filter(str.isdigit, v))
         if len(digits) < 8:
             raise ValueError('Teléfono debe tener al menos 8 dígitos')
@@ -45,9 +45,11 @@ class UserCreate(BaseModel):
             raise ValueError('Contraseña debe contener al menos un dígito')
         return v
 
+
 class UserLogin(BaseModel):
     username: str
     password: str
+
 
 class UserResponse(BaseModel):
     id: int
@@ -62,46 +64,44 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
+
 
 class TokenData(BaseModel):
     username: Optional[str] = None
     user_id: Optional[int] = None
     role: Optional[str] = None
 
-# --- FUNCIONES DE SEGURIDAD ---
+
 def hash_password(password: str) -> str:
-    """Genera hash bcrypt de la contraseña"""
     return pwd_context.hash(password)
 
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifica que la contraseña coincida con el hash"""
     return pwd_context.verify(plain_password, hashed_password)
 
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Crea un JWT token"""
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def decode_token(token: str) -> Optional[TokenData]:
-    """Decodifica y valida un JWT token"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        user_id: int = payload.get("user_id")
-        role: str = payload.get("role")
         if username is None:
             return None
-        token_data = TokenData(username=username, user_id=user_id, role=role)
+        return TokenData(
+            username=username,
+            user_id=payload.get("user_id"),
+            role=payload.get("role"),
+        )
     except JWTError:
         return None
-    return token_data

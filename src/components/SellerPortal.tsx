@@ -590,7 +590,23 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
   const delBrand = async (id: number) => { await carService.deleteBrand(id); showToast('Marca eliminada', 'info'); };
   const addColor = async () => { if (newColor) { await carService.createColor(newColor); setNewColor(''); showToast('Color agregado', 'success'); } };
   const delColor = async (id: number) => { await carService.deleteColor(id); showToast('Color eliminado', 'info'); };
-  const delUser = async (id: number) => { await carService.deleteUser(id); showToast('Usuario eliminado', 'info'); };
+  const delUser = async (id: number) => {
+    await carService.deleteUser(id);
+    showToast('Usuario eliminado', 'info');
+    const updated = await carService.getUsers();
+    setUsers(updated);
+  };
+
+  const toggleUser = async (id: number) => {
+    try {
+      const res = await carService.toggleUser(id);
+      showToast(res.activo ? 'Usuario activado' : 'Usuario desactivado', res.activo ? 'success' : 'info');
+      const updated = await carService.getUsers();
+      setUsers(updated);
+    } catch {
+      showToast('Error al cambiar estado del usuario', 'error');
+    }
+  };
 
   // Validación del formulario de usuario
   const validateUserForm = (): boolean => {
@@ -1059,12 +1075,25 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
                   className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-4 transition-all"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <p className="font-bold text-white text-sm">{user.nombre || user.username}</p>
-                      <p className="text-xs text-neutral-500 mt-1">{user.email}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-white text-sm truncate">{user.nombre || user.username}</p>
+                        <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded ${user.activo ? 'bg-green-500/20 text-green-400' : 'bg-neutral-700 text-neutral-500'}`}>
+                          {user.activo ? 'ACTIVO' : 'INACTIVO'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-500 mt-1 truncate">{user.email}</p>
                       <p className="text-xs text-neutral-500">{user.telefono}</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 ml-2 shrink-0">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        onClick={() => toggleUser(user.id)}
+                        className={`p-2 rounded-lg transition-all ${user.activo ? 'hover:bg-yellow-500/20' : 'hover:bg-green-500/20'}`}
+                        title={user.activo ? 'Desactivar usuario' : 'Activar usuario'}
+                      >
+                        <span className="text-xs">{user.activo ? '🔒' : '🔓'}</span>
+                      </motion.button>
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         onClick={() => startEditUser(user)}
@@ -1085,8 +1114,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-white/10">
                     <span className={`text-xs font-bold px-2 py-1 rounded-md ${
-                      user.role === 'admin' 
-                        ? 'bg-red-500/20 text-red-500' 
+                      user.role === 'admin'
+                        ? 'bg-red-500/20 text-red-500'
                         : 'bg-blue-500/20 text-blue-500'
                     }`}>
                       {user.role === 'admin' ? '👑 ADMIN' : '📊 VENDEDOR'}

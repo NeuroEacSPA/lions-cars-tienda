@@ -60,7 +60,7 @@ export interface User {
   email: string;
   telefono: string;
   username: string;
-  role: 'admin' | 'vendedor';
+  role: 'admin' | 'vendedor' | 'owner';
   activo: boolean;
   creado_en: string;
 }
@@ -227,6 +227,50 @@ export const carService = {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
     });
     if (!r.ok) throw new Error(`Error al eliminar usuario: ${r.status}`);
+  },
+
+  toggleUser: async (id: number): Promise<{ activo: boolean }> => {
+    const token = localStorage.getItem('auth_token');
+    const r = await fetch(`${API_URL}/users/${id}/toggle`, {
+      method: 'PATCH',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    });
+    if (!r.ok) throw new Error(`Error al cambiar estado: ${r.status}`);
+    return r.json();
+  },
+
+  updateProfile: async (data: { nombre?: string; email?: string; telefono?: string }) => {
+    const token = localStorage.getItem('auth_token');
+    const r = await fetch(`${API_URL}/auth/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(data),
+    });
+    if (!r.ok) {
+      const err = await r.json();
+      throw new Error(err.detail || 'Error al actualizar perfil');
+    }
+    return r.json();
+  },
+
+  changePassword: async (current_password: string, new_password: string) => {
+    const token = localStorage.getItem('auth_token');
+    const r = await fetch(`${API_URL}/auth/password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ current_password, new_password }),
+    });
+    if (!r.ok) {
+      const err = await r.json();
+      throw new Error(err.detail || 'Error al cambiar contraseña');
+    }
+    return r.json();
   },
 
   login: async (username: string, password: string): Promise<boolean> => {

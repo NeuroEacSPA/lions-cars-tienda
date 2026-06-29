@@ -204,8 +204,13 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
     return {"username": token_data.username, "user_id": token_data.user_id, "role": token_data.role}
 
 def get_admin_user(current_user: dict = Depends(get_current_user)) -> dict:
-    if current_user["role"] != "admin":
+    if current_user["role"] not in ("admin", "owner"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo administradores pueden acceder")
+    return current_user
+
+def get_owner_user(current_user: dict = Depends(get_current_user)) -> dict:
+    if current_user["role"] != "owner":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acceso denegado")
     return current_user
 
 # ============================================================
@@ -417,7 +422,15 @@ def delete_color(id: int):
 def get_users(admin: dict = Depends(get_admin_user)):
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
-    rows = conn.execute("SELECT id, nombre, email, telefono, username, role, activo FROM users").fetchall()
+    # owner solo visible para owners
+    if admin["role"] == "owner":
+        rows = conn.execute(
+            "SELECT id, nombre, email, telefono, username, role, activo FROM users ORDER BY id"
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT id, nombre, email, telefono, username, role, activo FROM users WHERE role != 'owner' ORDER BY id"
+        ).fetchall()
     conn.close()
     return [dict(row) for row in rows]
 
@@ -429,6 +442,10 @@ def create_user(user_data: dict, admin: dict = Depends(get_admin_user)):
         for field in required_fields:
             if field not in user_data or not user_data[field]:
                 raise HTTPException(status_code=400, detail=f"Campo {field} es requerido")
+
+        # Solo owner puede crear owners
+        if user_data.get("role") == "owner" and admin["role"] != "owner":
+            raise HTTPException(status_code=403, detail="No tienes permisos para ese rol")
 
         existing = conn.execute("SELECT id FROM users WHERE username=?", (user_data["username"],)).fetchone()
         if existing:
@@ -453,6 +470,12 @@ def create_user(user_data: dict, admin: dict = Depends(get_admin_user)):
 def update_user(id: int, user_data: dict, admin: dict = Depends(get_admin_user)):
     conn = sqlite3.connect(DB_NAME)
     try:
+        # Proteger usuarios owner
+        target = conn.execute("SELECT role FROM users WHERE id=?", (id,)).fetchone()
+        if target and target[0] == "owner" and admin["role"] != "owner":
+            conn.close()
+            raise HTTPException(status_code=403, detail="No puedes modificar este usuario")
+
         update_fields = []
         update_values = []
 
@@ -465,6 +488,9 @@ def update_user(id: int, user_data: dict, admin: dict = Depends(get_admin_user))
         }
         for campo, sql in campo_map.items():
             if user_data.get(campo):
+                # Solo owner puede asignar rol owner
+                if campo == "role" and user_data[campo] == "owner" and admin["role"] != "owner":
+                    continue
                 update_fields.append(sql)
                 update_values.append(user_data[campo])
 
@@ -494,9 +520,45 @@ def update_user(id: int, user_data: dict, admin: dict = Depends(get_admin_user))
         conn.close()
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.patch("/api/users/{id}/toggle")
+def toggle_user(id: int, admin: dict = Depends(get_admin_user)):
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    try:
+        target = conn.execute("SELECT role, activo FROM users WHERE id=?", (id,)).fetchone()
+        if not target:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        if target["role"] == "owner" and admin["role"] != "owner":
+            conn.close()
+            raise HTTPException(status_code=403, detail="No puedes modificar este usuario")
+        # No puede desactivarse a sí mismo
+        if id == admin["user_id"]:
+            conn.close()
+            raise HTTPException(status_code=400, detail="No puedes desactivarte a ti mismo")
+
+        nuevo = 0 if target["activo"] else 1
+        conn.execute("UPDATE users SET activo=? WHERE id=?", (nuevo, id))
+        conn.commit()
+        conn.close()
+        return {"activo": bool(nuevo)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.close()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.delete("/api/users/{id}")
 def delete_user(id: int, admin: dict = Depends(get_admin_user)):
     conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    target = conn.execute("SELECT role FROM users WHERE id=?", (id,)).fetchone()
+    if target and target["role"] == "owner" and admin["role"] != "owner":
+        conn.close()
+        raise HTTPException(status_code=403, detail="No puedes eliminar este usuario")
+    if id == admin["user_id"]:
+        conn.close()
+        raise HTTPException(status_code=400, detail="No puedes eliminarte a ti mismo")
     conn.execute("DELETE FROM users WHERE id=?", (id,))
     conn.commit()
     conn.close()
@@ -516,9 +578,12 @@ def get_vendors():
 # --- AUTH ---
 
 @app.post("/api/auth/register")
-def register(user_data: UserCreate):
+def register(user_data: UserCreate, admin: dict = Depends(get_admin_user)):
+    """Registro solo disponible para admins y owners."""
     conn = sqlite3.connect(DB_NAME)
     try:
+        if user_data.role == "owner" and admin["role"] != "owner":
+            raise HTTPException(status_code=403, detail="No tienes permisos para ese rol")
         hashed_password = hash_password(user_data.password)
         conn.execute(
             "INSERT INTO users (nombre, email, telefono, username, password, role) VALUES (?, ?, ?, ?, ?, ?)",
@@ -586,6 +651,72 @@ def get_profile(current_user: dict = Depends(get_current_user)):
         activo=user["activo"],
         creado_en=user["creado_en"]
     )
+
+@app.put("/api/auth/profile")
+def update_profile(profile_data: dict, current_user: dict = Depends(get_current_user)):
+    """Permite a cualquier usuario actualizar sus propios datos."""
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        update_fields = []
+        update_values = []
+        allowed = {"nombre": "nombre=?", "email": "email=?", "telefono": "telefono=?"}
+        for campo, sql in allowed.items():
+            if profile_data.get(campo):
+                update_fields.append(sql)
+                update_values.append(profile_data[campo])
+
+        if not update_fields:
+            conn.close()
+            raise HTTPException(status_code=400, detail="No hay campos para actualizar")
+
+        update_values.append(current_user["user_id"])
+        conn.execute(f"UPDATE users SET {', '.join(update_fields)} WHERE id=?", update_values)
+        conn.commit()
+
+        user = conn.execute("SELECT * FROM users WHERE id=?", (current_user["user_id"],)).fetchone()
+        conn.row_factory = sqlite3.Row
+        conn.close()
+        return {"message": "Perfil actualizado", "nombre": profile_data.get("nombre"), "email": profile_data.get("email")}
+    except sqlite3.IntegrityError as e:
+        conn.close()
+        if "email" in str(e):
+            raise HTTPException(status_code=400, detail="El correo ya está en uso")
+        raise HTTPException(status_code=400, detail="Error al actualizar perfil")
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.close()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/auth/password")
+def change_password(password_data: dict, current_user: dict = Depends(get_current_user)):
+    """Permite a cualquier usuario cambiar su propia contraseña."""
+    current_pass = password_data.get("current_password", "")
+    new_pass = password_data.get("new_password", "")
+
+    if not current_pass or not new_pass:
+        raise HTTPException(status_code=400, detail="Se requieren contraseña actual y nueva")
+    if len(new_pass) < 8:
+        raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 8 caracteres")
+    if not any(c.isupper() for c in new_pass):
+        raise HTTPException(status_code=400, detail="La contraseña debe incluir al menos una mayúscula")
+    if not any(c.isdigit() for c in new_pass):
+        raise HTTPException(status_code=400, detail="La contraseña debe incluir al menos un número")
+
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    user = conn.execute("SELECT * FROM users WHERE id=?", (current_user["user_id"],)).fetchone()
+    if not user:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if not verify_password(current_pass, user["password"]):
+        conn.close()
+        raise HTTPException(status_code=400, detail="Contraseña actual incorrecta")
+
+    conn.execute("UPDATE users SET password=? WHERE id=?", (hash_password(new_pass), current_user["user_id"]))
+    conn.commit()
+    conn.close()
+    return {"message": "Contraseña actualizada exitosamente"}
 
 
 # --- MÉTRICAS ---
