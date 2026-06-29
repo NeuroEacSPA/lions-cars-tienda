@@ -1114,11 +1114,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({ showToast }) => {
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-white/10">
                     <span className={`text-xs font-bold px-2 py-1 rounded-md ${
-                      user.role === 'admin'
+                      user.role === 'owner'
+                        ? 'bg-[#C9A84C]/20 text-[#C9A84C]'
+                        : user.role === 'admin'
                         ? 'bg-red-500/20 text-red-500'
                         : 'bg-blue-500/20 text-blue-500'
                     }`}>
-                      {user.role === 'admin' ? '👑 ADMIN' : '📊 VENDEDOR'}
+                      {user.role === 'owner' ? '⭐ OWNER' : user.role === 'admin' ? '👑 ADMIN' : '📊 VENDEDOR'}
                     </span>
                     <span className="text-xs text-neutral-600">@{user.username}</span>
                   </div>
@@ -1913,11 +1915,11 @@ const LionsEliteDashboard: React.FC<DashboardProps> = ({
         </div>
 
         <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-2 custom-scrollbar">
-          {userRole === 'admin' && <NavItem active={view === 'overview'} icon={BarChart3} label="Dashboard" onClick={() => { setView('overview'); setMobileMenuOpen(false); }} />}
+          {(userRole === 'admin' || userRole === 'owner') && <NavItem active={view === 'overview'} icon={BarChart3} label="Dashboard" onClick={() => { setView('overview'); setMobileMenuOpen(false); }} />}
           <NavItem active={view === 'inventory'} icon={Car} label="Inventario" onClick={() => { setView('inventory'); setMobileMenuOpen(false); }} />
           <NavItem active={view === 'form'} icon={PlusCircle} label="Publicar" onClick={() => { setEditingCar(null); setView('form'); setMobileMenuOpen(false); }} />
-          {userRole === 'admin' && <NavItem active={view === 'analytics'} icon={LineChart} label="Analítica" onClick={() => { setView('analytics'); setMobileMenuOpen(false); }} />}
-          {userRole === 'admin' && <NavItem active={view === 'settings'} icon={Settings} label="Configuración" onClick={() => { setView('settings'); setMobileMenuOpen(false); }} />}
+          {(userRole === 'admin' || userRole === 'owner') && <NavItem active={view === 'analytics'} icon={LineChart} label="Analítica" onClick={() => { setView('analytics'); setMobileMenuOpen(false); }} />}
+          {(userRole === 'admin' || userRole === 'owner') && <NavItem active={view === 'settings'} icon={Settings} label="Configuración" onClick={() => { setView('settings'); setMobileMenuOpen(false); }} />}
           <div className="h-px bg-white/5 my-4 mx-2" />
           {onBack && <NavItem active={false} icon={ArrowLeft} label="Volver Catálogo" onClick={onBack} color="text-blue-500/70" />}
           <NavItem active={false} icon={LogOut} label="Cerrar Sesión" onClick={onLogout} color="text-red-500/70" />
