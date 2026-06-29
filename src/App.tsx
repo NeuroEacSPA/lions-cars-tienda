@@ -1146,7 +1146,7 @@ function App() {
 
   useEffect(() => {
     if (!authLoading) {
-      if (isAuthenticated && user?.role === 'admin') setCurrentView('seller');
+      if (isAuthenticated && (user?.role === 'admin' || user?.role === 'owner')) setCurrentView('seller');
       else if (!isAuthenticated) setCurrentView('catalog');
     }
   }, [isAuthenticated, user, authLoading]);
@@ -1316,7 +1316,7 @@ function App() {
             <div className="absolute z-30 hidden lg:block" style={{ top:'2.5%', right:'1.2%', width:'3.5%', aspectRatio:'1' }}>
               {isAuthenticated ? (
                 <div className="relative w-full h-full">
-                  {user?.role === 'admin' && (
+                  {(user?.role === 'admin' || user?.role === 'owner') && (
                     <button
                       onClick={() => setCurrentView(currentView === 'catalog' ? 'seller' : 'catalog')}
                       className="w-full h-full bg-transparent cursor-pointer"
@@ -1745,7 +1745,7 @@ function App() {
             </motion.div>
           ) : (
             <>
-              {isAuthenticated && (user?.role === 'admin' || user?.role === 'vendedor') ? (
+              {isAuthenticated && (user?.role === 'admin' || user?.role === 'owner' || user?.role === 'vendedor') ? (
                 <motion.div key="seller-view" variants={pageTransitionVariants} initial="initial" animate="animate" exit="exit" className="w-full">
                   <Suspense fallback={<div className="flex items-center justify-center py-32"><div className="w-10 h-10 border-2 border-[#C8102E] border-t-transparent rounded-full animate-spin" /></div>}>
                   <SellerPortal
