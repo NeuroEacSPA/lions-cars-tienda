@@ -11,10 +11,13 @@ from typing import List, Optional
 import json
 from datetime import timedelta
 from PIL import Image
+from pillow_heif import register_heif_opener
 from security import (
     UserCreate, UserLogin, UserResponse, TokenResponse,
     hash_password, verify_password, create_access_token, decode_token
 )
+
+register_heif_opener()  # habilita Image.open() para fotos HEIC/HEIF de iPhone
 
 app = FastAPI(title="Lions Cars API", version="3.0")
 
