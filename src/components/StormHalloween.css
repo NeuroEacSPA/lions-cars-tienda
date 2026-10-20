@@ -1,0 +1,265 @@
+/* Tormenta y Halloween sobre la imagen del inicio (StormHalloween.tsx).
+   Regla de fluidez: SOLO se anima transform y opacity, una animación por
+   propiedad y por elemento (si hay dos movimientos, van en elementos anidados). */
+
+.lc-storm {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  overflow: hidden;
+  container-type: inline-size;
+}
+.lc-storm * {
+  pointer-events: none;
+}
+
+/* ── Relámpagos: el cielo se ilumina y aparece el rayo ───────────── */
+.lc-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 45% 40% at 56% 26%, rgba(220, 230, 255, 0.85), rgba(160, 180, 255, 0.25) 45%, transparent 75%);
+  opacity: 0;
+  animation: lc-flash 9s linear infinite;
+}
+.lc-flash--2 {
+  background: radial-gradient(ellipse 40% 38% at 30% 22%, rgba(220, 230, 255, 0.7), rgba(160, 180, 255, 0.2) 45%, transparent 75%);
+  animation-duration: 13s;
+  animation-delay: 4.5s;
+}
+.lc-bolt {
+  position: absolute;
+  left: 58%;
+  top: 9%;
+  width: 4.5cqw;
+  height: 30%;
+  opacity: 0;
+  overflow: visible;
+  /* Resplandor fijo (no se anima: solo cambia la opacidad del rayo). */
+  filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 10px #9db4ff);
+  animation: lc-flash 9s linear infinite;
+}
+.lc-bolt--2 {
+  left: 30%;
+  top: 10%;
+  height: 24%;
+  animation-duration: 13s;
+  animation-delay: 4.5s;
+}
+.lc-bolt polyline {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ── Lluvia: dos capas de gotas que bajan en diagonal ────────────── */
+.lc-rain {
+  position: absolute;
+  inset: 11% -15% 0 -15%; /* bajo la barra de menú de la imagen */
+  rotate: 12deg;
+}
+.lc-rain__layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -240px;
+  bottom: -240px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='240'%3E%3Cg stroke='%23cfe0ff' stroke-linecap='round'%3E%3Cpath d='M12 10v22M58 70v26M96 30v20M30 130v24M84 150v22M108 196v24M46 200v20M70 6v18M8 92v20' stroke-width='1.2' stroke-opacity='.55'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 120px 240px;
+  will-change: transform;
+  animation: lc-rain 0.42s linear infinite;
+}
+.lc-rain__layer--far {
+  opacity: 0.45;
+  background-size: 80px 160px;
+  animation-duration: 0.7s;
+}
+@keyframes lc-rain {
+  to { transform: translateY(240px); }
+}
+/* La capa lejana usa baldosa de 160 px: avanza 160 para repetir sin salto. */
+.lc-rain__layer--far {
+  animation-name: lc-rain-far;
+}
+@keyframes lc-rain-far {
+  to { transform: translateY(160px); }
+}
+
+/* Destellos irregulares, como un relámpago real (doble golpe). */
+@keyframes lc-flash {
+  0%, 100% { opacity: 0; }
+  1% { opacity: 0.9; }
+  2% { opacity: 0.15; }
+  3.2% { opacity: 1; }
+  5% { opacity: 0; }
+}
+
+/* ── Fantasmas: rondan el cielo cerca de la casa ─────────────────── */
+.lc-ghost {
+  position: absolute;
+  width: 5.5cqw;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: lc-ghost-a 16s ease-in-out infinite;
+}
+.lc-ghost--0 { left: 48%; top: 16%; }
+.lc-ghost--1 { left: 70%; top: 13%; width: 4.2cqw; animation-name: lc-ghost-b; animation-duration: 19s; animation-delay: 3s; }
+.lc-ghost--2 { left: 36%; top: 30%; width: 3.6cqw; animation-name: lc-ghost-c; animation-duration: 14s; animation-delay: 7s; }
+.lc-ghost__bob {
+  animation: lc-bob 2.6s ease-in-out infinite;
+}
+.lc-ghost__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Brillo fantasmal fijo */
+  filter: drop-shadow(0 0 0.8cqw rgba(190, 210, 255, 0.8));
+}
+@keyframes lc-ghost-a {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+  10% { opacity: 0.85; }
+  35% { transform: translate(8cqw, -2cqw) scale(1); }
+  60% { opacity: 0.85; transform: translate(14cqw, 3cqw) scale(1.1); }
+  80% { opacity: 0.5; transform: translate(6cqw, 5cqw) scale(0.95); }
+  100% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+}
+@keyframes lc-ghost-b {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.9) scaleX(-1); }
+  12% { opacity: 0.8; }
+  40% { transform: translate(-9cqw, 4cqw) scale(1) scaleX(-1); }
+  70% { opacity: 0.75; transform: translate(-3cqw, 8cqw) scale(1.1) scaleX(-1); }
+  100% { opacity: 0; transform: translate(4cqw, 0) scale(0.9) scaleX(-1); }
+}
+@keyframes lc-ghost-c {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+  15% { opacity: 0.7; }
+  50% { opacity: 0.7; transform: translate(10cqw, -6cqw) scale(1.05); }
+  100% { opacity: 0; transform: translate(18cqw, -2cqw) scale(0.8); }
+}
+@keyframes lc-bob {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-14%) rotate(4deg); }
+}
+
+/* ── Murciélagos: cruzan arriba de derecha a izquierda ───────────── */
+.lc-bat {
+  position: absolute;
+  left: 100%;
+  width: 3.2cqw;
+  will-change: transform;
+  animation: lc-bat-cross 7s linear infinite;
+}
+.lc-bat--0 { top: 14%; animation-delay: 0.5s; }
+.lc-bat--1 { top: 22%; width: 2.4cqw; animation-delay: 1.4s; animation-duration: 8s; }
+.lc-bat--2 { top: 17%; width: 2cqw; animation-delay: 4.2s; animation-duration: 9s; }
+.lc-bat--3 { top: 27%; width: 2.8cqw; animation-delay: 5.6s; animation-duration: 7.5s; }
+.lc-bat__wave {
+  animation: lc-bat-wave 1.6s ease-in-out infinite;
+}
+.lc-bat__flap {
+  transform-origin: 50% 40%;
+  animation: lc-bat-flap 0.18s ease-in-out infinite alternate;
+}
+.lc-bat__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+@keyframes lc-bat-cross {
+  from { transform: translateX(0); }
+  to { transform: translateX(-112cqw); }
+}
+@keyframes lc-bat-wave {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5cqw); }
+}
+@keyframes lc-bat-flap {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0.35); }
+}
+
+/* ── Calabazas encendidas en el piso ─────────────────────────────── */
+.lc-pumpkin {
+  position: absolute;
+  width: 6cqw;
+}
+.lc-pumpkin--0 { left: 25%; bottom: 7%; }
+.lc-pumpkin--1 { left: 3%; bottom: 6%; width: 5cqw; } /* a la derecha está el panel del tasador */
+.lc-pumpkin__svg {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.lc-pumpkin__glow {
+  position: absolute;
+  inset: -60%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 170, 40, 0.55), rgba(255, 90, 0, 0.18) 45%, transparent 70%);
+  animation: lc-candle 1.3s steps(3) infinite alternate;
+}
+.lc-pumpkin--1 .lc-pumpkin__glow {
+  animation-duration: 1.7s;
+}
+@keyframes lc-candle {
+  from { opacity: 1; }
+  to { opacity: 0.55; }
+}
+
+/* ── Araña: baja de su hilo y vuelve a subir ─────────────────────── */
+.lc-spider {
+  position: absolute;
+  left: 1.2%;
+  top: 11%;
+  width: 2.6cqw;
+  height: 30%;
+}
+.lc-spider__thread {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: rgba(230, 230, 240, 0.6);
+  transform-origin: top;
+  animation: lc-thread 6s ease-in-out infinite;
+}
+/* Mide lo mismo que el hilo: translateY en % baja la araña justo hasta la punta del hilo. */
+.lc-spider__body {
+  position: absolute;
+  inset: 0;
+  animation: lc-spider 6s ease-in-out infinite;
+}
+.lc-spider__body svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  translate: 0 -40%;
+}
+/* El hilo se estira lo mismo que baja la araña (30 % de la imagen = altura del bloque). */
+@keyframes lc-thread {
+  0%, 100% { transform: scaleY(0.15); }
+  45%, 60% { transform: scaleY(1); }
+}
+@keyframes lc-spider {
+  0%, 100% { transform: translateY(15%); }
+  45%, 60% { transform: translateY(100%); }
+}
+
+/* Quien pide menos movimiento: sin lluvia ni bichos en movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  .lc-rain,
+  .lc-bolt,
+  .lc-flash,
+  .lc-bat {
+    display: none;
+  }
+  .lc-storm * {
+    animation: none !important;
+  }
+  .lc-ghost {
+    opacity: 0.7;
+  }
+}

@@ -34,10 +34,9 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom'],
           'vendor-router': ['react-router-dom'],
           'vendor-motion': ['framer-motion'],
-          'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
-          'vendor-recharts': ['recharts', 'react-is'],
-          'vendor-pdf': ['@react-pdf/renderer'],
-          'vendor-mui': ['@mui/material', '@emotion/react', '@emotion/styled'],
+          // three, recharts, @react-pdf y MUI NO van aquí: un grupo manual obliga a
+          // precargarlos al entrar. Sin grupo, Vite los separa solos y se descargan
+          // recién cuando se usan (tasador, panel, PDF).
         }
       }
     }

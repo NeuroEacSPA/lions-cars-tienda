@@ -8,19 +8,17 @@ import {
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, type Variants } from 'framer-motion';
-import { PDFDownloadLink } from '@react-pdf/renderer';
-import { CarPdfDocument } from './components/CarPdf';
 import { useAuth } from './context/AuthContext';
 // AuthModal loaded lazily below
 import { UserMenu } from './components/UserMenu';
-import { TasarVehiculo } from './components/TasarVehiculo';
 // SellerPortal loaded lazily below
-// Background3D loaded lazily below
 import { ConfirmModal } from './components/ConfirmModal';
+import { StormHalloween } from './components/StormHalloween';
 
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const SellerPortal = lazy(() => import('./components/SellerPortal'));
-const Background3D = lazy(() => import('./components/Background3D').then(m => ({ default: m.Background3D })));
+// Tasador (MUI + gráficos): se descarga recién al abrirlo.
+const TasarVehiculo = lazy(() => import('./components/TasarVehiculo').then(m => ({ default: m.TasarVehiculo })));
 import { carService } from './services/api';
 import type { Vehiculo, Hotspot } from './services/api';
 
@@ -596,6 +594,23 @@ const CarModal = ({
 
   // Pre-fetch top 4 images as base64 so react-pdf can embed them without CORS issues
   const pdfBase64 = useBase64Images(images.slice(0, 4));
+  // El generador de PDF pesa 1,5 MB: se descarga recién al tocar "Descargar Ficha PDF".
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const downloadPdf = async () => {
+    setPdfBusy(true);
+    try {
+      const [{ pdf }, { CarPdfDocument }] = await Promise.all([import('@react-pdf/renderer'), import('./components/CarPdf')]);
+      const blob = await pdf(<CarPdfDocument car={pdfCar} baseUrl={window.location.origin} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Ficha_LyonsActyon_${car.marca}_${car.modelo}.pdf`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } finally {
+      setPdfBusy(false);
+    }
+  };
   const pdfCar = pdfBase64.length > 0
     ? { ...car, imagenes: pdfBase64, imagen: pdfBase64[0] }
     : car;
@@ -922,21 +937,18 @@ const CarModal = ({
                 </div>
               </SpotlightCard>
 
-              <PDFDownloadLink document={<CarPdfDocument car={pdfCar} baseUrl={window.location.origin} />} fileName={`Ficha_LyonsActyon_${car.marca}_${car.modelo}.pdf`} className="w-full">
-                {/* @ts-ignore */}
-                {({ loading: pdfLoading }) => {
-                  const busy = pdfLoading || pdfBase64.length === 0;
-                  return (
-                    <button disabled={busy}
-                      className="w-full py-3 bg-[#0a0a0c] hover:bg-black disabled:cursor-not-allowed border border-white/[0.05] hover:border-[#C8102E]/30 text-white rounded-2xl flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-[0.2em] group">
-                      {busy
-                        ? <><div className="w-4 h-4 border-2 border-[#E8B923] border-t-transparent rounded-full animate-spin" /> {pdfBase64.length === 0 ? 'Cargando imágenes...' : 'Generando...'}</>
-                        : <><FileDown size={14} className="text-[#E8B923] group-hover:translate-y-0.5 transition-transform" /> Descargar Ficha PDF</>
-                      }
-                    </button>
-                  );
-                }}
-              </PDFDownloadLink>
+              {(() => {
+                const busy = pdfBusy || pdfBase64.length === 0;
+                return (
+                  <button type="button" onClick={downloadPdf} disabled={busy}
+                    className="w-full py-3 bg-[#0a0a0c] hover:bg-black disabled:cursor-not-allowed border border-white/[0.05] hover:border-[#C8102E]/30 text-white rounded-2xl flex items-center justify-center gap-2 transition-all font-black text-[10px] uppercase tracking-[0.2em] group">
+                    {busy
+                      ? <><div className="w-4 h-4 border-2 border-[#E8B923] border-t-transparent rounded-full animate-spin" /> {pdfBase64.length === 0 ? 'Cargando imágenes...' : 'Generando...'}</>
+                      : <><FileDown size={14} className="text-[#E8B923] group-hover:translate-y-0.5 transition-transform" /> Descargar Ficha PDF</>
+                    }
+                  </button>
+                );
+              })()}
             </div>
 
             {/* Stats — CountUp */}
@@ -1342,6 +1354,9 @@ function App() {
               </picture>
             </motion.div>
 
+            {/* Tormenta (y Halloween en temporada) sobre la imagen; no recibe clics */}
+            <StormHalloween />
+
             {/* ── BOTÓN ADMIN — cubre solo el ≡ de la imagen ── */}
             <div className="absolute z-30 hidden lg:block" style={{ top:'2.5%', right:'1.2%', width:'3.5%', aspectRatio:'1' }}>
               {isAuthenticated ? (
@@ -1390,7 +1405,7 @@ function App() {
               transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
               className="absolute top-1/2 -translate-y-1/2 right-[2%] z-20 hidden lg:block w-[330px] xl:w-[360px]"
             >
-              <TasarVehiculo />
+              <Suspense fallback={<div className="py-16 text-center text-zinc-500 text-sm">Cargando tasador…</div>}><TasarVehiculo /></Suspense>
             </motion.div>
 
             {/* ── BOTÓN ADMIN MOBILE — cubre solo el ≡ (inside relative wrapper) ── */}
@@ -1443,7 +1458,7 @@ function App() {
               {/* Widget Tasar */}
               <div className="px-4 pb-8">
                 <div className="rounded-2xl overflow-hidden border border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-                  <TasarVehiculo />
+                  <Suspense fallback={<div className="py-16 text-center text-zinc-500 text-sm">Cargando tasador…</div>}><TasarVehiculo /></Suspense>
                 </div>
               </div>
             </div>
