@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import './StormHalloween.css';
 
 /**
@@ -119,8 +120,18 @@ function Zombie({ step }: { step: 0 | 1 }) {
 
 export function StormHalloween() {
   const halloween = isHalloweenSeason();
+  // Con la imagen fuera de pantalla (viendo el catálogo) se pausa todo: un solo
+  // observador para todo el bloque, no uno por elemento.
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([e]) => el.classList.toggle('is-paused', !e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   return (
-    <div className="lc-storm" aria-hidden="true">
+    <div ref={ref} className="lc-storm" aria-hidden="true">
       {/* Tormenta */}
       <div className="lc-flash" />
       <div className="lc-flash lc-flash--2" />

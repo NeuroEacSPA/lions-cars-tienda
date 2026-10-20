@@ -13,6 +13,16 @@
 .lc-storm * {
   pointer-events: none;
 }
+/* Fuera de pantalla: todo quieto (no gasta batería ni procesador). */
+.lc-storm.is-paused,
+.lc-storm.is-paused * {
+  animation-play-state: paused !important;
+}
+.lc-storm.is-paused::before,
+.lc-storm.is-paused *::before,
+.lc-storm.is-paused *::after {
+  animation-play-state: paused !important;
+}
 
 /* ── Relámpagos: el cielo se ilumina y aparece el rayo ───────────── */
 .lc-flash {
