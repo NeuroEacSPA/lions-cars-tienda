@@ -117,25 +117,17 @@ const ModalLoading = () => (
 // ── AUTO CAROUSEL ─────────────────────────────────────────────
 const AutoCarousel = ({ images, interval = 3000, alt = 'Auto en venta' }: { images: string[]; interval?: number; alt?: string }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  // Solo avanza mientras la tarjeta está a la vista: con 90 autos, rotar todos
-  // a la vez (aunque estén fuera de pantalla) trababa la página y bajaba fotos de más.
-  const boxRef = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
+  // Con la pestaña oculta no rota (ahorra batería). Ojo: probamos pausar las
+  // tarjetas fuera de pantalla con IntersectionObserver y la página trabajaba
+  // MÁS en reposo (las tarjetas tienen 3D), así que rotan todas.
   useEffect(() => {
-    const el = boxRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') { setInView(true); return; }
-    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { rootMargin: '100px' });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  useEffect(() => {
-    if (!inView || !images || images.length < 2) return;
+    if (!images || images.length < 2) return;
     const timer = setInterval(() => { if (!document.hidden) setCurrentIndex(p => (p + 1) % images.length); }, interval);
     return () => clearInterval(timer);
-  }, [images, interval, inView]);
+  }, [images, interval]);
 
   return (
-    <div ref={boxRef} className="relative w-full h-full overflow-hidden group">
+    <div className="relative w-full h-full overflow-hidden group">
       <AnimatePresence mode="wait">
         <motion.img
           key={currentIndex}
