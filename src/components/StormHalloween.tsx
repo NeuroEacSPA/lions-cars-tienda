@@ -10,6 +10,10 @@ import './StormHalloween.css';
  * JS por cuadro. Nada recibe clics (pointer-events: none), así los botones de
  * la imagen siguen funcionando. Tamaños en cqw: escalan con el ancho de la
  * imagen, igual en teléfono y computador.
+ *
+ * En Halloween además: un fantasma se asoma por las ventanas de la casa, los
+ * autos prenden y apagan los focos en cadena y caminan zombis por el
+ * estacionamiento.
  */
 
 /** Halloween: del 15 de octubre al 2 de noviembre; después desaparece solo. */
@@ -69,6 +73,50 @@ function Pumpkin() {
   );
 }
 
+/**
+ * Posiciones medidas sobre hero-main.webp (en % del ancho y alto de la imagen).
+ * Si cambia la imagen del inicio, hay que medirlas de nuevo.
+ */
+// Ventanas del segundo piso de la casa: [izquierda, arriba, ancho, alto].
+const WINDOWS = [
+  [79.7, 29.7, 5.9, 10.3],
+  [90.6, 28.5, 7.4, 10.6],
+] as const;
+// Focos delanteros, agrupados por auto (se prenden en cadena, auto por auto).
+const HEADLIGHTS: [number, number][][] = [
+  [[35.9, 73.6], [51.6, 73.0]], // Renault azul
+  [[55.9, 71.9], [65.9, 71.3]], // Kia blanco
+  [[70.6, 66.3], [79.4, 66.0]], // SUV gris
+  [[83.75, 65.4], [90.9, 66.0]], // rojo
+  [[96.6, 65.4]], // plateado
+];
+
+/** Zombi de perfil mirando a la derecha; `step` alterna la pose de las piernas. */
+function Zombie({ step }: { step: 0 | 1 }) {
+  const legs =
+    step === 0 ? (
+      <path d="M27 62 20 84 16 98M31 62 38 80 44 96" />
+    ) : (
+      <path d="M27 62 30 82 26 98M31 62 28 80 33 97" />
+    );
+  return (
+    <svg viewBox="0 0 60 100" className="lc-zombie__svg">
+      <g stroke="#1d2a1d" strokeWidth="7" strokeLinecap="round" fill="none">
+        {legs}
+        {/* Brazos estirados hacia adelante */}
+        <path d="M30 34 50 36 58 40M28 38 47 44 55 48" />
+      </g>
+      {/* Torso encorvado con ropa rota */}
+      <path d="M22 30q8-6 14 2l-2 32H24Z" fill="#2c3a2a" />
+      <path d="M24 56l3 6 3-5 3 6 2-5v-2H24Z" fill="#141c14" />
+      {/* Cabeza ladeada */}
+      <circle cx="33" cy="20" r="9" fill="#7d9467" />
+      <circle cx="37" cy="18" r="1.8" fill="#ff3b1f" />
+      <path d="M33 25h6" stroke="#2a1a1a" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 export function StormHalloween() {
   const halloween = isHalloweenSeason();
   return (
@@ -103,6 +151,34 @@ export function StormHalloween() {
               <div className="lc-bat__wave">
                 <div className="lc-bat__flap">
                   <Bat />
+                </div>
+              </div>
+            </div>
+          ))}
+          {/* Fantasma que se asoma por las ventanas de la casa */}
+          {WINDOWS.map(([left, top, w, h], i) => (
+            <div key={i} className={`lc-window lc-window--${i}`} style={{ left: `${left}%`, top: `${top}%`, width: `${w}%`, height: `${h}%` }}>
+              <span className="lc-window__glow" />
+              <div className="lc-window__ghost">
+                <Ghost />
+              </div>
+            </div>
+          ))}
+          {/* Los autos prenden los focos, uno tras otro, y parpadean */}
+          {HEADLIGHTS.map((car, i) =>
+            car.map(([left, top], j) => (
+              <span key={`${i}-${j}`} className="lc-headlight" style={{ left: `${left}%`, top: `${top}%`, animationDelay: `${i * 0.35}s` }} />
+            )),
+          )}
+          {/* Zombis caminando por el estacionamiento */}
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={`lc-zombie lc-zombie--${i}`}>
+              <div className="lc-zombie__sway">
+                <div className="lc-zombie__frame lc-zombie__frame--a">
+                  <Zombie step={0} />
+                </div>
+                <div className="lc-zombie__frame lc-zombie__frame--b">
+                  <Zombie step={1} />
                 </div>
               </div>
             </div>
