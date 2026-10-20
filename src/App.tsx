@@ -115,20 +115,32 @@ const ModalLoading = () => (
 );
 
 // ── AUTO CAROUSEL ─────────────────────────────────────────────
-const AutoCarousel = ({ images, interval = 3000 }: { images: string[]; interval?: number }) => {
+const AutoCarousel = ({ images, interval = 3000, alt = 'Auto en venta' }: { images: string[]; interval?: number; alt?: string }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  // Solo avanza mientras la tarjeta está a la vista: con 90 autos, rotar todos
+  // a la vez (aunque estén fuera de pantalla) trababa la página y bajaba fotos de más.
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
   useEffect(() => {
-    if (!images || images.length === 0) return;
-    const timer = setInterval(() => setCurrentIndex(p => (p + 1) % images.length), interval);
+    const el = boxRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setInView(true); return; }
+    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { rootMargin: '100px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!inView || !images || images.length < 2) return;
+    const timer = setInterval(() => { if (!document.hidden) setCurrentIndex(p => (p + 1) % images.length); }, interval);
     return () => clearInterval(timer);
-  }, [images, interval]);
+  }, [images, interval, inView]);
 
   return (
-    <div className="relative w-full h-full overflow-hidden group">
+    <div ref={boxRef} className="relative w-full h-full overflow-hidden group">
       <AnimatePresence mode="wait">
         <motion.img
           key={currentIndex}
           src={images[currentIndex] || '/web1.jpg'}
+          alt={alt}
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
@@ -219,6 +231,7 @@ const CarCard = ({ car, onClick, isFavorite, onToggleFavorite }: CarCardProps) =
         <motion.button
           whileTap={{ scale: 0.8, rotate: -15 }}
           onClick={e => { e.stopPropagation(); onToggleFavorite(e, car.id); }}
+          aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
           className="absolute top-3 right-3 z-30 p-2.5 rounded-xl bg-black/40 hover:bg-black/80 backdrop-blur-md text-white transition-all border border-white/10 shadow-lg"
         >
           <Heart size={18} style={{ fill: isFavorite ? RED_MAIN : 'none', color: isFavorite ? RED_MAIN : 'inherit' }} />
@@ -226,7 +239,7 @@ const CarCard = ({ car, onClick, isFavorite, onToggleFavorite }: CarCardProps) =
 
         <div className="relative h-52 sm:h-64 overflow-hidden bg-black border-b border-white/[0.04]">
           <motion.div layoutId={`image-container-${car.id}`} className="w-full h-full">
-            <AutoCarousel images={imageList} />
+            <AutoCarousel images={imageList} alt={`${car.marca} ${car.modelo} ${car.ano ?? ""}`.trim()} />
           </motion.div>
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0c] via-[#0a0a0c]/20 to-transparent" />
           <div className="absolute bottom-4 left-5 pr-4">
